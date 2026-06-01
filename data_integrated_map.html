@@ -895,9 +895,11 @@ async function loadAllData() {
         crimeData[gu][year] = { 
           crime: 0, arrest: 0, 
           occur: { murder:0, robbery:0, theft:0, violence:0, rape:0 },
-          arrest_by_type: { murder:0, robbery:0, theft:0, violence:0, rape:0 }
+          arrest_by_type: { murder:0, robbery:0, theft:0, violence:0, rape:0 },
+          crimeRate: { murder:0, robbery:0, theft:0, violence:0, rape:0 }
         };
       }
+      
 
       if (type === '합계') {
         crimeData[gu][year].crime = parseFloat(row['범죄율(10만명당)']) || 0;
@@ -914,9 +916,14 @@ async function loadAllData() {
         if (key) {
           crimeData[gu][year].occur[key] = +row['발생'] || 0;
           crimeData[gu][year].arrest_by_type[key] = +row['검거'] || 0;
+          crimeData[gu][year].crimeRate[key] = parseFloat(row['범죄율(10만명당)']) || 0;
         }
+        \
+        
       }
     });
+
+
 
     state.policeData = policeData;
     state.cctvData = cctvData;
