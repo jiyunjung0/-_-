@@ -835,7 +835,7 @@
 
       const c = document.createElementNS(NS2, 'circle');
       c.setAttribute('cx', cx); c.setAttribute('cy', cy);
-      c.setAttribute('r', '7'); c.setAttribute('fill', '#94a3b8');
+      c.setAttribute('r', '4'); c.setAttribute('fill', '#94a3b8');
       c.setAttribute('fill-opacity', '0.55'); c.setAttribute('stroke', 'white');
       c.setAttribute('stroke-width', '1.5');
       const title = document.createElementNS(NS2, 'title');
@@ -845,7 +845,7 @@
 
       // small district name
       const t = document.createElementNS(NS2, 'text');
-      t.setAttribute('x', cx + 9); t.setAttribute('y', cy + 4);
+      t.setAttribute('x', cx + 6); t.setAttribute('y', cy + 4);
       t.setAttribute('font-size', '10'); t.setAttribute('fill', '#94a3b8');
       t.textContent = p.gu.replace('구', '');
       svg.appendChild(t);
@@ -860,13 +860,13 @@
       // glow effect
       const glow = document.createElementNS(NS2, 'circle');
       glow.setAttribute('cx', cx); glow.setAttribute('cy', cy);
-      glow.setAttribute('r', '20'); glow.setAttribute('fill', color);
+      glow.setAttribute('r', '14'); glow.setAttribute('fill', color);
       glow.setAttribute('fill-opacity', '0.15');
       svg.appendChild(glow);
 
       const c = document.createElementNS(NS2, 'circle');
       c.setAttribute('cx', cx); c.setAttribute('cy', cy);
-      c.setAttribute('r', '12'); c.setAttribute('fill', color);
+      c.setAttribute('r', '7'); c.setAttribute('fill', color);
       c.setAttribute('stroke', 'white'); c.setAttribute('stroke-width', '2.5');
       const title = document.createElementNS(NS2, 'title');
       title.textContent = `${p.gu} — Crime Rate: ${p.crime.toFixed(1)}, Arrest Rate: ${p.arrest.toFixed(1)}%`;
@@ -875,7 +875,7 @@
 
       // label box
       const labelText = `${gu} (${p.crime.toFixed(0)}, ${p.arrest.toFixed(1)}%)`;
-      const lx = cx + 16, ly = cy - 10;
+      const lx = cx + 11, ly = cy - 10;
       const bg = document.createElementNS(NS2, 'rect');
       bg.setAttribute('x', lx - 4); bg.setAttribute('y', ly - 13);
       bg.setAttribute('width', labelText.length * 7.5); bg.setAttribute('height', 20);
