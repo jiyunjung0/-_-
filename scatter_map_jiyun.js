@@ -210,14 +210,14 @@
       // glow circle
       const glow = document.createElementNS(NS, 'circle');
       glow.setAttribute('cx', cx); glow.setAttribute('cy', cy);
-      glow.setAttribute('r', '20'); glow.setAttribute('fill', '#3b82f6');
+      glow.setAttribute('r', '14'); glow.setAttribute('fill', '#3b82f6');
       glow.setAttribute('fill-opacity', '0');
       svg.appendChild(glow);
 
       // main point
       const c = document.createElementNS(NS, 'circle');
       c.setAttribute('cx', cx); c.setAttribute('cy', cy);
-      c.setAttribute('r', '7'); c.setAttribute('fill', '#64748b');
+      c.setAttribute('r', '4'); c.setAttribute('fill', '#64748b');
       c.setAttribute('fill-opacity', '0.65');
       c.setAttribute('stroke', 'white'); c.setAttribute('stroke-width', '1.5');
       c.style.cursor = 'pointer';
@@ -226,14 +226,14 @@
       // always-on district-name label above point
       const lbl = document.createElementNS(NS, 'text');
       lbl.setAttribute('x', cx);
-      lbl.setAttribute('y', cy - 12);
+      lbl.setAttribute('y', cy - 9);
       lbl.setAttribute('class', 'scatter-point-label');
       lbl.textContent = p.gu;
       svg.appendChild(lbl);
 
       c.addEventListener('mouseenter', function() {
         // emphasize point
-        this.setAttribute('r', '10');
+        this.setAttribute('r', '6');
         this.setAttribute('fill', '#3b82f6');
         this.setAttribute('fill-opacity', '1');
         glow.setAttribute('fill-opacity', '0.15');
@@ -254,7 +254,7 @@
       });
 
       c.addEventListener('mouseleave', function() {
-        this.setAttribute('r', '7');
+        this.setAttribute('r', '4');
         this.setAttribute('fill', '#64748b');
         this.setAttribute('fill-opacity', '0.65');
         glow.setAttribute('fill-opacity', '0');
