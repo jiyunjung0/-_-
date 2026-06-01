@@ -1,3 +1,8 @@
+setTimeout(() => {
+  console.log(state.crimeData['강남구']['2021']);
+}, 5000);
+
+
 // 데이터 로드 완료 후 실행되도록 대기
 function waitForData(callback) {
   if (state.crimeData) {
@@ -81,15 +86,13 @@ function getColorByType(guName) {
       : crimeData[guName][year].arrest;
     return getColor(val, state.metric);
   }
-
-  // 특정 범죄 유형 선택 시: 해당 유형 발생건수로 색 계산
-  const occur = crimeData[guName][year].occur;
-  const allValues = Object.keys(state.crimeData)
-    .filter(g => state.crimeData[g][year])
-    .map(g => state.crimeData[g][year].occur[crimeFilterState.selectedType] || 0);
+  // 범죄율(10만명당) 기준으로 색 계산
+  const allValues = Object.keys(crimeData)
+    .filter(g => crimeData[g][year] && crimeData[g][year].crimeRate)
+    .map(g => crimeData[g][year].crimeRate[crimeFilterState.selectedType] || 0);
 
   const max = Math.max(...allValues);
-  const val = occur[crimeFilterState.selectedType] || 0;
+  const val = crimeData[guName][year].crimeRate[crimeFilterState.selectedType] || 0;
   const intensity = max > 0 ? val / max : 0;
 
   return `rgba(230, 57, 70, ${0.1 + intensity * 0.9})`;
