@@ -87,15 +87,20 @@ function getColorByType(guName) {
     return getColor(val, state.metric);
   }
   // 범죄율(10만명당) 기준으로 색 계산
+  const dataKey = state.metric === 'arrest' ? 'arrest_by_type' : 'crimeRate';
+
   const allValues = Object.keys(crimeData)
-    .filter(g => crimeData[g][year] && crimeData[g][year].crimeRate)
-    .map(g => crimeData[g][year].crimeRate[crimeFilterState.selectedType] || 0);
+    .filter(g => crimeData[g][year] && crimeData[g][year][dataKey])
+    .map(g => crimeData[g][year][dataKey][crimeFilterState.selectedType] || 0);
 
   const max = Math.max(...allValues);
-  const val = crimeData[guName][year].crimeRate[crimeFilterState.selectedType] || 0;
+  const val = crimeData[guName][year][dataKey][crimeFilterState.selectedType] || 0;
   const intensity = max > 0 ? val / max : 0;
 
-  return `rgba(230, 57, 70, ${0.1 + intensity * 0.9})`;
+  if (state.metric === 'arrest') {
+    return `rgba(6, 167, 125, ${0.1 + intensity * 0.9})`;
+    }
+    return `rgba(230, 57, 70, ${0.1 + intensity * 0.9})`;
 }
 
 // 필터 적용된 메인맵 렌더링 (기존 renderMainMap 확장)
