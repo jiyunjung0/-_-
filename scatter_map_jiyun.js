@@ -208,6 +208,52 @@
     // points + hover events
     const tooltip = document.getElementById('scatterTooltip');
 
+    // ---- collision-aware label placement (avoid overlapping district names) ----
+    const _FS = 10, _R = 7, _charW = 9.6;
+    const _estW = t => t.length * _charW + 4;
+    const _ov = (a, b) => !(a.x2 <= b.x1 || a.x1 >= b.x2 || a.y2 <= b.y1 || a.y1 >= b.y2);
+    const _inB = b => b.x1 >= ml - 2 && b.x2 <= W - mr + 2 && b.y1 >= mt - 2 && b.y2 <= H - mb + 2;
+    const _box = (cand, w) => {
+      const x1 = cand.anchor === 'middle' ? cand.tx - w / 2 : cand.anchor === 'start' ? cand.tx : cand.tx - w;
+      return { x1, x2: x1 + w, y1: cand.ty - _FS, y2: cand.ty + 2 };
+    };
+    const _cands = (cx, cy) => ([
+      { tx: cx,        ty: cy - _R - 7,  anchor: 'middle', leader: false }, // above
+      { tx: cx,        ty: cy + _R + 13, anchor: 'middle', leader: false }, // below
+      { tx: cx + _R+5, ty: cy + 3.5,     anchor: 'start',  leader: false }, // right
+      { tx: cx - _R-5, ty: cy + 3.5,     anchor: 'end',    leader: false }, // left
+      { tx: cx,        ty: cy - _R - 19, anchor: 'middle', leader: true  }, // far above
+      { tx: cx,        ty: cy + _R + 25, anchor: 'middle', leader: true  }, // far below
+      { tx: cx + _R+6, ty: cy - 11,      anchor: 'start',  leader: true  }, // up-right
+      { tx: cx - _R-6, ty: cy - 11,      anchor: 'end',    leader: true  }, // up-left
+      { tx: cx + _R+6, ty: cy + 18,      anchor: 'start',  leader: true  }, // down-right
+      { tx: cx - _R-6, ty: cy + 18,      anchor: 'end',    leader: true  }, // down-left
+    ]);
+    const _placed = [];
+    points.map(p => ({ p, cx: xP(p.crime), cy: yP(p.arrest) }))
+          .sort((a, b) => a.cx - b.cx)
+          .forEach(({ p, cx, cy }) => {
+            const w = _estW(p.gu);
+            let best = null, bestScore = Infinity;
+            for (const cand of _cands(cx, cy)) {
+              const box = _box(cand, w);
+              let s = 0;
+              if (!_inB(box)) s += 1000;
+              for (const pb of _placed) {
+                if (_ov(box, pb)) {
+                  const ox = Math.min(box.x2, pb.x2) - Math.max(box.x1, pb.x1);
+                  const oy = Math.min(box.y2, pb.y2) - Math.max(box.y1, pb.y1);
+                  s += Math.max(0, ox) * Math.max(0, oy);
+                }
+              }
+              if (!cand.leader) s -= 6; // prefer labels hugging the point
+              if (s < bestScore) { bestScore = s; best = { cand, box }; }
+              if (s <= 0) break;        // clean spot found
+            }
+            p._label = best.cand;
+            _placed.push(best.box);
+          });
+
     points.forEach(p => {
       const cx = xP(p.crime), cy = yP(p.arrest);
 
@@ -227,11 +273,20 @@
       c.style.cursor = 'pointer';
       svg.appendChild(c);
 
-      // always-on district-name label above point
+      // always-on district-name label, placed to avoid overlaps
+      const lab = p._label || { tx: cx, ty: cy - 12, anchor: 'middle', leader: false };
+      if (lab.leader) {
+        const leaderLine = document.createElementNS(NS, 'line');
+        leaderLine.setAttribute('x1', cx); leaderLine.setAttribute('y1', cy);
+        leaderLine.setAttribute('x2', lab.tx); leaderLine.setAttribute('y2', lab.ty - 3);
+        leaderLine.setAttribute('stroke', '#cbd2d9'); leaderLine.setAttribute('stroke-width', '0.8');
+        svg.appendChild(leaderLine);
+      }
       const lbl = document.createElementNS(NS, 'text');
-      lbl.setAttribute('x', cx);
-      lbl.setAttribute('y', cy - 12);
+      lbl.setAttribute('x', lab.tx);
+      lbl.setAttribute('y', lab.ty);
       lbl.setAttribute('class', 'scatter-point-label');
+      lbl.setAttribute('text-anchor', lab.anchor);
       lbl.textContent = p.gu;
       svg.appendChild(lbl);
 
@@ -244,6 +299,7 @@
 
         // emphasize the name label above the point
         lbl.classList.add('active');
+        svg.appendChild(lbl); // bring to front
 
         // highlight the matching district on the map above
         highlightMapGu(p.gu);
