@@ -94,19 +94,21 @@
       arrest: state.crimeData[gu]?.[state.year]?.arrest || 0,
     })).filter(p => p.crime > 0);
 
-    const crimeVals = points.map(p => p.crime);
-    const arrestVals = points.map(p => p.arrest);
-    const minC = Math.min(...crimeVals) * 0.92;
-    const maxC = Math.max(...crimeVals) * 1.05;
-    const minA = Math.min(...arrestVals) * 0.92;
-    const maxA = Math.max(...arrestVals) * 1.05;
+    // 전체 연도 통틀어 min/max 고정 → 연도 바꿔도 축 안 변함
+    const allYears = Object.keys(state.crimeData[allGu[0]] || {});
+    const allCrime = allGu.flatMap(gu => allYears.map(yr => state.crimeData[gu]?.[yr]?.crime || 0)).filter(v => v > 0);
+    const allArrest = allGu.flatMap(gu => allYears.map(yr => state.crimeData[gu]?.[yr]?.arrest || 0)).filter(v => v > 0);
+    const minC = Math.min(...allCrime) * 0.92;
+    const maxC = Math.max(...allCrime) * 1.05;
+    const minA = Math.min(...allArrest) * 0.92;
+    const maxA = Math.max(...allArrest) * 1.05;
 
     const xP = v => ml + ((v - minC) / (maxC - minC)) * iW;
     const yP = v => mt + iH - ((v - minA) / (maxA - minA)) * iH;
 
-    // average line
-    const avgC = crimeVals.reduce((a,b)=>a+b,0)/crimeVals.length;
-    const avgA = arrestVals.reduce((a,b)=>a+b,0)/arrestVals.length;
+    // average line (현재 연도 기준)
+    const avgC = points.reduce((a,b) => a + b.crime, 0) / points.length;
+    const avgA = points.reduce((a,b) => a + b.arrest, 0) / points.length;
 
     // quadrant background
     const mx = xP(avgC), my = yP(avgA);
