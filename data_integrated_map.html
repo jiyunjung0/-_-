@@ -367,12 +367,12 @@
 
   /* ===== Modal overlay on map ===== */
   .modal-backdrop {
-    position: absolute;
+    position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
-    z-index: 10;
+    z-index: 999;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -387,13 +387,18 @@
 
   .gu-modal {
     display: none;
-    position: relative;
-    z-index: 20;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(1180px, 94vw);
+    max-height: 92vh;
+    z-index: 1000;
     flex-direction: column;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 16px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
     overflow: hidden;
     min-width: 0;
   }
@@ -556,8 +561,8 @@
   .gu-detail-svg {
     display: block;
     width: 100%;
-    height: 56vh;
-    max-height: 580px;
+    height: 66vh;
+    max-height: 760px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -568,7 +573,7 @@
     display: flex;
     gap: 0;
     align-items: stretch;
-    min-height: 560px;
+    min-height: 64vh;
   }
   .modal-map-col {
     flex: 0 0 52%;
@@ -1157,12 +1162,41 @@ function renderModalMap(guName) {
     }
   });
 
-  // 경찰서 위치
+  // 경찰서 위치 (구 경계 밖으로 투영되면 가장 가까운 경계 안쪽으로 보정)
   if (state.layers.police && state.policeData) {
+    const poly = xs.map((x, i) => [x, ys[i]]);
+    const cenX = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const cenY = ys.reduce((a, b) => a + b, 0) / ys.length;
+    const inPoly = (qx, qy) => {
+      let ins = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+        if (((yi > qy) !== (yj > qy)) && (qx < (xj - xi) * (qy - yi) / (yj - yi) + xi)) ins = !ins;
+      }
+      return ins;
+    };
+    const clampInside = (qx, qy) => {
+      let bx = qx, by = qy, bd = Infinity;
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i], b = poly[(i + 1) % poly.length];
+        const dx = b[0] - a[0], dy = b[1] - a[1];
+        const len2 = dx * dx + dy * dy || 1;
+        let t = ((qx - a[0]) * dx + (qy - a[1]) * dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const ex = a[0] + t * dx, ey = a[1] + t * dy;
+        const d = (ex - qx) * (ex - qx) + (ey - qy) * (ey - qy);
+        if (d < bd) { bd = d; bx = ex; by = ey; }
+      }
+      // 경계점에서 중심 쪽으로 살짝 밀어 확실히 내부에 위치시킴
+      const vx = cenX - bx, vy = cenY - by;
+      const vlen = Math.hypot(vx, vy) || 1;
+      return [bx + (vx / vlen) * 10 * scale, by + (vy / vlen) * 10 * scale];
+    };
     state.policeData.forEach(p => {
       if (p.address.includes(guName)) {
-        const px = scaleX(p.lng);
-        const py = scaleY(p.lat);
+        let px = scaleX(p.lng);
+        let py = scaleY(p.lat);
+        if (!inPoly(px, py)) { const c = clampInside(px, py); px = c[0]; py = c[1]; }
         const r = 11 * scale;
         svg += `<g transform="translate(${px}, ${py})">
                   <circle cx="0" cy="0" r="${r}" fill="#eab308" stroke="white" stroke-width="${2 * scale}"><title>${p.name} (${p.type})</title></circle>
