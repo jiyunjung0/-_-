@@ -22,10 +22,8 @@
       .gu-path.scatter-hover {
         stroke: var(--accent-blue, #3b82f6) !important;
         stroke-width: 4 !important;
-        vector-effect: non-scaling-stroke;   /* render stroke in screen px, not tiny viewBox units */
-        filter: drop-shadow(0 0 22px rgba(59,130,246,0.7)) brightness(1.18) saturate(1.3);
+        vector-effect: non-scaling-stroke;   /* render stroke in real screen px */
       }
-      .gu-path.scatter-dim { opacity: 0.15; }
       .gu-label.scatter-hover-label { fill: var(--accent-blue, #3b82f6); font-weight: 800; }
 
       /* dot group — position is animated via JS rAF tween (see _runDotTween) */
@@ -60,7 +58,6 @@
     if (!mapSvg) return;
     mapSvg.querySelectorAll('.gu-path').forEach(p => {
       if (p.getAttribute('data-gu') === guName) { p.classList.add('scatter-hover'); mapSvg.appendChild(p); }
-      else p.classList.add('scatter-dim');
     });
     const lab = mapSvg.querySelector(`[data-gu-label="${guName}"]`);
     if (lab) { lab.classList.add('scatter-hover-label'); mapSvg.appendChild(lab); }
