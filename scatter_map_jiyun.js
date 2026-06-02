@@ -412,5 +412,43 @@
 
     if (typeof window.renderMainMap === 'function') window.renderMainMap();
     renderMainScatterEnhanced();
+
+    // receive brush selection from brushing_hyewon.js
+    window.onBrushUpdate = function(brushedGus) {
+      if (!_dotMap) return;
+
+      if (brushedGus.length === 0) {
+        // no selection — restore all
+        Object.values(_dotMap).forEach(d => {
+          d.g.style.opacity = '';
+          d.lbl.style.opacity = '';
+          d.circle.setAttribute('fill', '#64748b');
+          d.circle.setAttribute('r', '7');
+          d.glow.setAttribute('fill-opacity', '0');
+        });
+        return;
+      }
+
+      // highlight brushed, dim others
+      Object.entries(_dotMap).forEach(([gu, d]) => {
+        if (brushedGus.includes(gu)) {
+          d.g.style.opacity = '1';
+          d.lbl.style.opacity = '1';
+          d.circle.setAttribute('fill', '#3b82f6');
+          d.circle.setAttribute('fill-opacity', '1');
+          d.circle.setAttribute('r', '10');
+          d.glow.setAttribute('fill-opacity', '0.15');
+          d.lbl.classList.add('active');
+        } else {
+          d.g.style.opacity = '0.15';
+          d.lbl.style.opacity = '0.1';
+          d.circle.setAttribute('fill', '#64748b');
+          d.circle.setAttribute('fill-opacity', '0.65');
+          d.circle.setAttribute('r', '7');
+          d.glow.setAttribute('fill-opacity', '0');
+          d.lbl.classList.remove('active');
+        }
+      });
+    };
   });
 })();
