@@ -1,7 +1,5 @@
 /* eslint-disable no-undef */
 /* global d3, state, SEOUL_DATA, DONG_DATA, scaleX, scaleY, normalizeDongName, cctvRadiusScale, renderMainMap, closeModal */
-/* eslint-disable no-undef */
-/* global d3, state, SEOUL_DATA, DONG_DATA, scaleX, scaleY, normalizeDongName, cctvRadiusScale, renderMainMap, closeModal */
 
 /* ============================================================
  * compare_two_jiyun.js  (SPA Sliding Panel + Fixed CSV Parsing)
