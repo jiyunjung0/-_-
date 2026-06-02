@@ -1,11 +1,13 @@
 /* eslint-disable no-undef */
 /* global d3, state, SEOUL_DATA, DONG_DATA, scaleX, scaleY, normalizeDongName, cctvRadiusScale, renderMainMap, closeModal */
+/* eslint-disable no-undef */
+/* global d3, state, SEOUL_DATA, DONG_DATA, scaleX, scaleY, normalizeDongName, cctvRadiusScale, renderMainMap, closeModal */
 
 /* ============================================================
  * compare_two_jiyun.js  (SPA Sliding Panel + Fixed CSV Parsing)
  * Feature: 
- * 1. 따옴표를 완벽히 처리하는 CSV 파서를 통해 경찰서 및 CCTV 데이터 로드
- * 2. 1개 구역 선택 시 단독 분석, 2개 선택 시 비교 분석 패널 슬라이딩
+ * 1. Load police station and CCTV data via a robust CSV parser handling quoted fields
+ * 2. Single district → detail panel; two districts → comparison panel with slide animation
  * ========================================================== */
 
 (function () {
@@ -16,10 +18,10 @@
   const CRIME_TYPES = ['murder', 'robbery', 'theft', 'violence', 'rape'];
 
   /* =========================================================
-   * 1. 외부 CSV 비동기 데이터 로더 및 견고한 파서
+   * 1. Async external CSV loader and robust parser
    * ========================================================= */
   
-  // 💡 따옴표 안의 쉼표(,)를 무시하고 엑셀처럼 정확하게 열을 분리하는 함수
+  // Splits a CSV line correctly, ignoring commas inside quoted fields
   function parseCSVLine(line) {
     const cols = [];
     let current = '';
@@ -27,7 +29,7 @@
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       if (char === '"') {
-        inQuotes = !inQuotes; // 따옴표 열고 닫힘 체크
+        inQuotes = !inQuotes; // toggle quoted state
       } else if (char === ',' && !inQuotes) {
         cols.push(current.trim());
         current = '';
@@ -70,7 +72,7 @@
       const cols = parseCSVLine(line);
       if (cols.length < 5) return null;
       
-      // 좌표 분리 (따옴표는 이미 제거되었으므로 쉼표로만 분리)
+      // split coordinates (quotes already stripped, comma-separated)
       const coords = cols[4].split(',');
       return {
         station: cols[0],
@@ -98,14 +100,14 @@
       state.cctvMaxRatio = maxRatio;
       state.policeData = parsePoliceCsv(policeText);
       
-      console.log('✅ 외부 CSV 데이터 및 경찰서 좌표 로드 완벽 해결!');
+      console.log('✅ External CSV data and police coordinates loaded successfully.');
     } catch (error) {
-      console.error('❌ CSV 데이터를 불러오지 못했습니다.', error);
+      console.error('❌ Failed to load CSV data.', error);
     }
   }
 
   /* =========================================================
-   * 2. CSS — SPA 스타일 + 상세보기 버튼
+   * 2. CSS — SPA styles + detail panel button
    * ========================================================= */
   function injectStyles() {
     if (document.getElementById('jiyunSpaStyles')) return;
@@ -209,7 +211,7 @@
   }
 
   /* =========================================================
-   * 3. DOM & 이벤트 연결 로직
+   * 3. DOM injection & event wiring
    * ========================================================= */
   function injectHTML() {
     if (!document.getElementById('jiyunSidePanel')) {
@@ -225,9 +227,9 @@
         const block = document.createElement('div');
         block.className = 'control-block';
         block.innerHTML =
-          '<div class="control-label"><span>자치구 상세 분석</span></div>' +
-          '<button class="compare-two-btn" id="startCompareTwoBtn">🔍 자치구 상세보기 켜기</button>' +
-          '<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;line-height:1.5;" id="compareTwoHint">지도에서 구역을 클릭하여 우측에 상세 분석 패널을 엽니다.</div>';
+          '<div class="control-label"><span>District Analysis</span></div>' +
+          '<button class="compare-two-btn" id="startCompareTwoBtn">🔍 Enable District Detail View</button>' +
+          '<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;line-height:1.5;" id="compareTwoHint">Click a district on the map to open the detail panel on the right.</div>';
         sb.appendChild(block);
         document.getElementById('startCompareTwoBtn').addEventListener('click', toggleCompareTwoMode);
       }
@@ -240,9 +242,9 @@
     const hint = document.getElementById('compareTwoHint');
 
     if (compareTwoState.active) {
-      btn.textContent = '✕ 상세보기 모드 끄기';
+      btn.textContent = '✕ Disable Detail View';
       btn.classList.add('selecting');
-      hint.innerHTML = '<span style="color:var(--accent-orange);font-weight:600;">상세보기 활성화됨.</span> 지도에서 구역을 클릭하세요.';
+      hint.innerHTML = '<span style="color:var(--accent-orange);font-weight:600;">Detail view active.</span> Click a district on the map.';
     } else {
       resetCompareTwoMode();
     }
@@ -254,11 +256,11 @@
     compareTwoState.guB = null;
     const btn = document.getElementById('startCompareTwoBtn');
     if (btn) {
-      btn.textContent = '🔍 자치구 상세보기 켜기';
+      btn.textContent = '🔍 Enable District Detail View';
       btn.classList.remove('selecting');
     }
     const hint = document.getElementById('compareTwoHint');
-    if (hint) hint.textContent = '버튼을 켜고 지도에서 구역을 클릭하면 상세 패널이 열립니다.';
+    if (hint) hint.textContent = 'Enable the button and click a district to open the detail panel.';
     
     updateLayoutAndRender(); 
   }
@@ -318,7 +320,7 @@
     const panel = document.getElementById('jiyunSidePanel');
 
     if (!compareTwoState.guA) {
-      // 패널 닫기: panel-open 먼저 제거 → 애니메이션 후 jiyun-active 제거
+      // close panel: remove panel-open first → then remove jiyun-active after animation
       app.classList.remove('panel-open');
       setTimeout(() => {
         app.classList.remove('jiyun-active');
@@ -328,7 +330,7 @@
       return;
     }
 
-    // 패널 열기: jiyun-active 먼저 → 다음 프레임에 panel-open 추가
+    // open panel: add jiyun-active first → add panel-open on next frame
     app.classList.add('jiyun-active');
     renderJiyunPanelContent();
     requestAnimationFrame(() => {
@@ -338,7 +340,7 @@
   }
 
   /* =========================================================
-   * 4. 패널 콘텐츠 및 차트 렌더링
+   * 4. Panel content and chart rendering
    * ========================================================= */
   function renderJiyunPanelContent() {
     const panel = document.getElementById('jiyunSidePanel');
@@ -353,28 +355,28 @@
       panel.innerHTML = `
         <div class="two-compare-header">
           <div>
-            <h2>${guA} 상세 분석</h2>
+            <h2>${guA} Detail Analysis</h2>
             <div style="font-size:13px; color:var(--text-secondary); margin-top:6px;">
-              <span style="color:var(--accent-blue); font-weight:700;">💡 지도에서 다른 구역을 하나 더 클릭하면 다중 비교 분석이 시작됩니다.</span>
+              <span style="color:var(--accent-blue); font-weight:700;">💡 Click another district on the map to start a multi-district comparison.</span>
             </div>
           </div>
           <button class="two-compare-close" onclick="closeJiyunPanel()">✕</button>
         </div>
         <div class="two-compare-body">
           <div class="two-chart-section">
-            <h3>관할구역 및 안전 인프라 분포</h3>
+            <h3>District Boundary & Safety Infrastructure</h3>
             <div class="two-map-card card-a" style="max-width: 600px; margin: 0 auto;">
               <div class="two-map-card-label">${guA}</div>
-              <div class="two-map-card-sub">범죄율 ${dA.crime?.toFixed(1)||'—'} · 검거율 ${dA.arrest?.toFixed(1)||'—'}% · CCTV ${cctvA.toLocaleString()}대</div>
+              <div class="two-map-card-sub">Crime Rate ${dA.crime?.toFixed(1)||'—'} · Arrest Rate ${dA.arrest?.toFixed(1)||'—'}% · CCTV ${cctvA.toLocaleString()}</div>
               <div class="two-map-svg-wrap" id="singleMapSvg" style="min-height:480px;"></div>
             </div>
             <div style="display:flex; gap:16px; margin-top:12px; justify-content:center; font-size:12px; color:var(--text-secondary);">
-              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#a78bfa;border:1.5px solid #7c3aed;"></span> CCTV 설치 비율</div>
-              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#64748b;border:1.5px solid white;box-shadow:0 0 2px rgba(0,0,0,0.3)"></span> 경찰서 위치</div>
+              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#a78bfa;border:1.5px solid #7c3aed;"></span> CCTV Installation Ratio</div>
+              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#64748b;border:1.5px solid white;box-shadow:0 0 2px rgba(0,0,0,0.3)"></span> Police Station</div>
             </div>
           </div>
           <div class="two-chart-section">
-            <h3>연도별 범죄 발생 건수 추이</h3>
+            <h3>Annual Crime Count Trend</h3>
             <svg id="singleTrendSvg" width="100%" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet"></svg>
           </div>
         </div>
@@ -392,48 +394,48 @@
         <div class="two-compare-header">
           <div>
             <h2>${guA} <span style="color:var(--text-tertiary); font-weight:400; font-size:18px; margin: 0 8px;">vs</span> ${guB}</h2>
-            <div style="font-size:13px; color:var(--text-secondary); margin-top:6px;">두 자치구의 치안 인프라 및 범죄 지표 비교 분석</div>
+            <div style="font-size:13px; color:var(--text-secondary); margin-top:6px;">Comparative analysis of public safety infrastructure and crime indicators</div>
           </div>
           <button class="two-compare-close" onclick="closeJiyunPanel()">✕</button>
         </div>
         <div class="two-compare-body">
           
           <div class="two-chart-section">
-            <h3>안전 인프라 분포 비교</h3>
+            <h3>Safety Infrastructure Distribution</h3>
             <div class="two-map-row-vertical">
               <div class="two-map-card card-a">
                 <div class="two-map-card-label">${guA}</div>
-                <div class="two-map-card-sub" id="twoMapSubA">범죄율 ${dA.crime?.toFixed(1)||'—'} · 검거율 ${dA.arrest?.toFixed(1)||'—'}%</div>
+                <div class="two-map-card-sub" id="twoMapSubA">Crime Rate ${dA.crime?.toFixed(1)||'—'} · Arrest Rate ${dA.arrest?.toFixed(1)||'—'}%</div>
                 <div class="two-map-svg-wrap" id="twoMapSvgA"></div>
               </div>
               <div class="two-map-card card-b">
                 <div class="two-map-card-label">${guB}</div>
-                <div class="two-map-card-sub" id="twoMapSubB">범죄율 ${dB.crime?.toFixed(1)||'—'} · 검거율 ${dB.arrest?.toFixed(1)||'—'}%</div>
+                <div class="two-map-card-sub" id="twoMapSubB">Crime Rate ${dB.crime?.toFixed(1)||'—'} · Arrest Rate ${dB.arrest?.toFixed(1)||'—'}%</div>
                 <div class="two-map-svg-wrap" id="twoMapSvgB"></div>
               </div>
             </div>
             <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--text-secondary);">
-              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#a78bfa;border:1.5px solid #7c3aed;"></span> CCTV 설치 비율</div>
-              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#64748b;border:1.5px solid white;box-shadow:0 0 2px rgba(0,0,0,0.3)"></span> 경찰서 위치</div>
+              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#a78bfa;border:1.5px solid #7c3aed;"></span> CCTV Installation Ratio</div>
+              <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;border-radius:50%;background:#64748b;border:1.5px solid white;box-shadow:0 0 2px rgba(0,0,0,0.3)"></span> Police Station</div>
             </div>
           </div>
 
           <div class="two-chart-section">
-            <h3>핵심 치안 지표 (${yr}년)</h3>
+            <h3>Key Safety Metrics (${yr})</h3>
             <div class="two-stat-row">
               <div class="two-stat-card card-a">
                 <h3 id="twoStatNameA">${guA}</h3>
                 <div class="two-stat-items">
                   <div class="two-stat-item">
-                    <div class="two-stat-item-label">범죄율</div>
+                    <div class="two-stat-item-label">Crime Rate</div>
                     <div class="two-stat-item-val crime">${dA.crime?.toFixed(1)||'—'}</div>
                   </div>
                   <div class="two-stat-item">
-                    <div class="two-stat-item-label">검거율</div>
+                    <div class="two-stat-item-label">Arrest Rate</div>
                     <div class="two-stat-item-val arrest">${dA.arrest?.toFixed(1)||'—'}%</div>
                   </div>
                   <div class="two-stat-item">
-                    <div class="two-stat-item-label">CCTV 대수</div>
+                    <div class="two-stat-item-label">CCTV Count</div>
                     <div class="two-stat-item-val">${cctvA > 0 ? cctvA.toLocaleString() : '—'}</div>
                   </div>
                 </div>
@@ -442,15 +444,15 @@
                 <h3 id="twoStatNameB">${guB}</h3>
                 <div class="two-stat-items">
                   <div class="two-stat-item">
-                    <div class="two-stat-item-label">범죄율</div>
+                    <div class="two-stat-item-label">Crime Rate</div>
                     <div class="two-stat-item-val crime">${dB.crime?.toFixed(1)||'—'}</div>
                   </div>
                   <div class="two-stat-item">
-                    <div class="two-stat-item-label">검거율</div>
+                    <div class="two-stat-item-label">Arrest Rate</div>
                     <div class="two-stat-item-val arrest">${dB.arrest?.toFixed(1)||'—'}%</div>
                   </div>
                   <div class="two-stat-item">
-                    <div class="two-stat-item-label">CCTV 대수</div>
+                    <div class="two-stat-item-label">CCTV Count</div>
                     <div class="two-stat-item-val">${cctvB > 0 ? cctvB.toLocaleString() : '—'}</div>
                   </div>
                 </div>
@@ -459,7 +461,7 @@
           </div>
 
           <div class="two-chart-section">
-            <h3>범죄율 및 검거율 막대 비교</h3>
+            <h3>Crime Rate & Arrest Rate Bar Comparison</h3>
             <div class="two-chart-row">
               <svg id="twoBarSvg" width="100%" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
               <svg id="twoArrestBarSvg" width="100%" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
@@ -467,37 +469,43 @@
           </div>
 
           <div class="two-chart-section">
-            <h3>5대 범죄 유형별 방사형 분석</h3>
-            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:12px;">색칠된 면적이 넓을수록 해당 범죄 발생 빈도가 높음을 의미합니다.</div>
+            <h3>Five Major Crime Types — Radar Analysis</h3>
+            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:12px;">Larger shaded area indicates higher frequency of that crime type.</div>
             <div class="two-chart-row" style="align-items:center;">
               <svg id="twoRadarSvg" width="100%" viewBox="0 0 500 420" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
               <div class="crime-filter-panel">
-                <div class="crime-filter-title">비교할 범죄 유형 선택</div>
+                <div class="crime-filter-title">Select crime types to compare</div>
                 <div class="crime-filter-list" id="crimeFilterList">
-                  <label class="crime-filter-item" data-key="murder"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#e63946"></span> 살인</label>
-                  <label class="crime-filter-item" data-key="robbery"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#f97316"></span> 강도</label>
-                  <label class="crime-filter-item" data-key="theft"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#eab308"></span> 절도</label>
-                  <label class="crime-filter-item" data-key="violence"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#06a77d"></span> 폭력</label>
-                  <label class="crime-filter-item" data-key="rape"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#3b82f6"></span> 강간/추행</label>
+                  <label class="crime-filter-item" data-key="murder"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#e63946"></span> Murder</label>
+                  <label class="crime-filter-item" data-key="robbery"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#f97316"></span> Robbery</label>
+                  <label class="crime-filter-item" data-key="theft"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#eab308"></span> Theft</label>
+                  <label class="crime-filter-item" data-key="violence"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#06a77d"></span> Violence</label>
+                  <label class="crime-filter-item" data-key="rape"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#3b82f6"></span> Sexual Assault</label>
                 </div>
-                <div class="crime-filter-hint" style="font-size:11px;color:var(--text-tertiary);margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">체크된 범죄 유형만 방사형 및 막대 차트에 나타납니다.</div>
+                <div class="crime-filter-hint" style="font-size:11px;color:var(--text-tertiary);margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">Only checked crime types appear in the radar and bar charts.</div>
               </div>
             </div>
           </div>
 
           <div class="two-chart-section">
-            <h3>선택된 범죄 유형별 건수 비교</h3>
+            <h3>Incident Count by Crime Type</h3>
             <svg id="twoCrimeSvg" width="100%" viewBox="0 0 800 260" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
 
           <div class="two-chart-section">
-            <h3>서울시 25개 구 전체 산점도 분포 <span style="font-size:13px;font-weight:400;color:var(--text-tertiary)">— x축: 범죄율, y축: 검거율</span></h3>
-            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:12px;">선택한 두 구역이 전체 자치구 중 어느 위치에 있는지 한눈에 파악하세요.</div>
-            <svg id="twoScatterSvg" width="100%" viewBox="0 0 800 420" preserveAspectRatio="xMidYMid meet" style="display:block;border:1px solid var(--border);border-radius:12px;background:var(--bg-card);"></svg>
+            <h3>Seoul 25 Districts — Scatter Positioning <span style="font-size:13px;font-weight:400;color:var(--text-tertiary)">— x: crime rate, y: arrest rate</span></h3>
+            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:10px;">See where the two selected districts stand among all 25 Seoul districts.</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <span style="font-size:12px;font-weight:600;color:var(--text-secondary);">Year</span>
+              <input type="range" id="twoScatterYearSlider" min="2021" max="2024" step="1" value="${yr}"
+                style="flex:1;accent-color:var(--accent-blue);cursor:pointer;">
+              <span id="twoScatterYearLabel" style="font-size:13px;font-weight:700;color:var(--accent-blue);min-width:36px;text-align:right;">${yr}</span>
+            </div>
+            <svg id="twoScatterSvg" width="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet" style="display:block;border:1px solid var(--border);border-radius:12px;background:var(--bg-card);"></svg>
           </div>
 
           <div class="two-chart-section">
-            <h3>연도별 범죄율 추이 비교</h3>
+            <h3>Crime Rate Trend by Year</h3>
             <svg id="twoTrendSvg" width="100%" viewBox="0 0 800 240" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
         </div>
@@ -511,7 +519,7 @@
       renderTwoCrimeChart2(guA, guB, yr);
       renderTwoTrendChart2(guA, guB);
 
-      // 필터 이벤트 연동
+      // wire up filter events
       document.querySelectorAll('#crimeFilterList input[type=checkbox]').forEach(cb => {
         cb.onchange = () => {
           renderTwoRadarChart(guA, guB, state.year);
@@ -532,7 +540,7 @@
   }
 
   /* =========================================================
-   * 지윤님 원본 D3 차트 렌더링 함수들 (미니맵 투영 오류 해결)
+   * Chart rendering functions — mini-map, scatter, radar, bar (projection fix applied)
    * ========================================================= */
   function renderMiniMap2(containerId, guName, slot, isLarge = false) {
     const container = document.getElementById(containerId);
@@ -569,7 +577,7 @@
         const info2 = key ? state.cctvData[guName][key] : null;
         if (info2 && info2.ratio > 0) {
           const r = (4 + (info2.ratio/maxR)*24) * scale;
-          svg += `<circle cx="${dong.cx}" cy="${dong.cy}" r="${r}" fill="#a78bfa" fill-opacity=".32" stroke="#7c3aed" stroke-width="${1.1*scale}"><title>${dong.name} CCTV 비율: ${info2.ratio.toFixed(1)}</title></circle>`;
+          svg += `<circle cx="${dong.cx}" cy="${dong.cy}" r="${r}" fill="#a78bfa" fill-opacity=".32" stroke="#7c3aed" stroke-width="${1.1*scale}"><title>${dong.name} CCTV ratio: ${info2.ratio.toFixed(1)}</title></circle>`;
         }
       });
     }
@@ -720,60 +728,100 @@
   function renderTwoScatterChart(guA, guB, yr) {
     const svg = document.getElementById('twoScatterSvg');
     if (!svg || !state.crimeData) return;
-    svg.innerHTML = '';
-    const W = 800, H = 420, ml = 70, mr = 40, mt = 30, mb = 60;
-    const iW = W - ml - mr, iH = H - mt - mb;
 
+    const YEARS = ['2021','2022','2023','2024'];
+    const W = 800, H = 400, ml = 60, mr = 30, mt = 24, mb = 54;
+    const iW = W-ml-mr, iH = H-mt-mb;
     const allGu = Object.keys(SEOUL_DATA.districts);
-    const pts = allGu.map(gu=>({gu, crime:state.crimeData[gu]?.[yr]?.crime||0, arrest:state.crimeData[gu]?.[yr]?.arrest||0})).filter(p=>p.crime>0);
-    const minCrime = Math.min(...pts.map(p=>p.crime))*0.9, maxCrime = Math.max(...pts.map(p=>p.crime))*1.05;
-    const minArrest = Math.min(...pts.map(p=>p.arrest))*0.9, maxArrest = Math.max(...pts.map(p=>p.arrest))*1.05;
-    const xP=v=>ml+((v-minCrime)/(maxCrime-minCrime))*iW;
-    const yP=v=>mt+iH-((v-minArrest)/(maxArrest-minArrest))*iH;
 
-    const mx=xP((minCrime+maxCrime)/2), my=yP((minArrest+maxArrest)/2);
+    // fixed scale across all years
+    const allCrime  = allGu.flatMap(gu => YEARS.map(y => state.crimeData[gu]?.[y]?.crime  || 0)).filter(v=>v>0);
+    const allArrest = allGu.flatMap(gu => YEARS.map(y => state.crimeData[gu]?.[y]?.arrest || 0)).filter(v=>v>0);
+    const minC = Math.min(...allCrime)*0.92,  maxC = Math.max(...allCrime)*1.05;
+    const minA = Math.min(...allArrest)*0.92, maxA = Math.max(...allArrest)*1.05;
+    const xP = v => ml+((v-minC)/(maxC-minC))*iW;
+    const yP = v => mt+iH-((v-minA)/(maxA-minA))*iH;
 
-    [{x:ml,y:mt,w:mx-ml,h:my-mt,f:'rgba(249,115,22,0.04)'},{x:mx,y:mt,w:W-mr-mx,h:my-mt,f:'rgba(230,57,70,0.06)'},
-     {x:ml,y:my,w:mx-ml,h:H-mb-my,f:'rgba(6,167,125,0.06)'},{x:mx,y:my,w:W-mr-mx,h:H-mb-my,f:'rgba(249,115,22,0.04)'}].forEach(q=>{
-      const r=document.createElementNS(NS2,'rect'); r.setAttribute('x',q.x);r.setAttribute('y',q.y);r.setAttribute('width',q.w);r.setAttribute('height',q.h);r.setAttribute('fill',q.f); svg.appendChild(r);
-    });
+    // draw for a given year
+    function draw(selectedYr) {
+      svg.innerHTML = '';
+      const pts = allGu.map(gu=>({gu, crime:state.crimeData[gu]?.[selectedYr]?.crime||0, arrest:state.crimeData[gu]?.[selectedYr]?.arrest||0})).filter(p=>p.crime>0);
+      const avgC = pts.reduce((s,p)=>s+p.crime,0)/pts.length;
+      const avgA = pts.reduce((s,p)=>s+p.arrest,0)/pts.length;
+      const mx=xP(avgC), my=yP(avgA);
 
-    const midX=document.createElementNS(NS2,'line'); midX.setAttribute('x1',mx);midX.setAttribute('x2',mx);midX.setAttribute('y1',mt);midX.setAttribute('y2',H-mb);midX.setAttribute('stroke','#cbd2d9');midX.setAttribute('stroke-dasharray','5,4'); svg.appendChild(midX);
-    const midY=document.createElementNS(NS2,'line'); midY.setAttribute('x1',ml);midY.setAttribute('x2',W-mr);midY.setAttribute('y1',my);midY.setAttribute('y2',my);midY.setAttribute('stroke','#cbd2d9');midY.setAttribute('stroke-dasharray','5,4'); svg.appendChild(midY);
-    const ax=document.createElementNS(NS2,'line'); ax.setAttribute('x1',ml);ax.setAttribute('x2',W-mr);ax.setAttribute('y1',H-mb);ax.setAttribute('y2',H-mb);ax.setAttribute('stroke','#94a3b8'); svg.appendChild(ax);
-    const ay=document.createElementNS(NS2,'line'); ay.setAttribute('x1',ml);ay.setAttribute('x2',ml);ay.setAttribute('y1',mt);ay.setAttribute('y2',H-mb);ay.setAttribute('stroke','#94a3b8'); svg.appendChild(ay);
+      // quadrant backgrounds
+      [{x:ml,y:mt,w:mx-ml,h:my-mt,f:'rgba(6,167,125,0.05)'},{x:mx,y:mt,w:W-mr-mx,h:my-mt,f:'rgba(249,115,22,0.05)'},
+       {x:ml,y:my,w:mx-ml,h:H-mb-my,f:'rgba(59,130,246,0.05)'},{x:mx,y:my,w:W-mr-mx,h:H-mb-my,f:'rgba(230,57,70,0.05)'}].forEach(q=>{
+        const r=document.createElementNS(NS2,'rect'); r.setAttribute('x',q.x);r.setAttribute('y',q.y);r.setAttribute('width',q.w);r.setAttribute('height',q.h);r.setAttribute('fill',q.f); svg.appendChild(r);
+      });
 
-    for(let i=0;i<=5;i++){
-      const xv=minCrime+(maxCrime-minCrime)/5*i, x=xP(xv);
-      const tk=document.createElementNS(NS2,'line'); tk.setAttribute('x1',x);tk.setAttribute('x2',x);tk.setAttribute('y1',H-mb);tk.setAttribute('y2',H-mb+5);tk.setAttribute('stroke','#94a3b8'); svg.appendChild(tk);
-      const t=document.createElementNS(NS2,'text'); t.setAttribute('x',x);t.setAttribute('y',H-mb+18);t.setAttribute('text-anchor','middle');t.setAttribute('font-size','11');t.setAttribute('fill','#64748b');t.textContent=Math.round(xv); svg.appendChild(t);
+      // avg lines
+      [[mx,mt,mx,H-mb],[ml,my,W-mr,my]].forEach(([x1,y1,x2,y2])=>{
+        const l=document.createElementNS(NS2,'line'); l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke','#cbd2d9');l.setAttribute('stroke-dasharray','5,4');l.setAttribute('stroke-width','1.5'); svg.appendChild(l);
+      });
+
+      // axes
+      [[ml,mt,ml,H-mb],[ml,H-mb,W-mr,H-mb]].forEach(([x1,y1,x2,y2])=>{
+        const l=document.createElementNS(NS2,'line'); l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke','#94a3b8');l.setAttribute('stroke-width','1.5'); svg.appendChild(l);
+      });
+
+      // ticks
+      for(let i=0;i<=5;i++){
+        const xv=minC+(maxC-minC)/5*i, x=xP(xv);
+        const tk=document.createElementNS(NS2,'line'); tk.setAttribute('x1',x);tk.setAttribute('x2',x);tk.setAttribute('y1',H-mb);tk.setAttribute('y2',H-mb+5);tk.setAttribute('stroke','#94a3b8'); svg.appendChild(tk);
+        const t=document.createElementNS(NS2,'text'); t.setAttribute('x',x);t.setAttribute('y',H-mb+18);t.setAttribute('text-anchor','middle');t.setAttribute('font-size','11');t.setAttribute('fill','#64748b');t.textContent=Math.round(xv); svg.appendChild(t);
+        const yv=minA+(maxA-minA)/5*i, y=yP(yv);
+        const yk=document.createElementNS(NS2,'line'); yk.setAttribute('x1',ml-5);yk.setAttribute('x2',ml);yk.setAttribute('y1',y);yk.setAttribute('y2',y);yk.setAttribute('stroke','#94a3b8'); svg.appendChild(yk);
+        const yt=document.createElementNS(NS2,'text'); yt.setAttribute('x',ml-8);yt.setAttribute('y',y+4);yt.setAttribute('text-anchor','end');yt.setAttribute('font-size','11');yt.setAttribute('fill','#64748b');yt.textContent=yv.toFixed(1)+'%'; svg.appendChild(yt);
+      }
+
+      // axis labels
+      const xl=document.createElementNS(NS2,'text'); xl.setAttribute('x',ml+iW/2);xl.setAttribute('y',H-6);xl.setAttribute('text-anchor','middle');xl.setAttribute('font-size','12');xl.setAttribute('font-weight','600');xl.setAttribute('fill','#475569');xl.textContent='Crime Rate (per 100k)'; svg.appendChild(xl);
+      const yl=document.createElementNS(NS2,'text'); yl.setAttribute('transform','rotate(-90)');yl.setAttribute('x',-(mt+iH/2));yl.setAttribute('y',14);yl.setAttribute('text-anchor','middle');yl.setAttribute('font-size','12');yl.setAttribute('font-weight','600');yl.setAttribute('fill','#475569');yl.textContent='Arrest Rate (%)'; svg.appendChild(yl);
+
+      // year label inside chart
+      const ytl=document.createElementNS(NS2,'text'); ytl.setAttribute('x',W-mr-8);ytl.setAttribute('y',mt+20);ytl.setAttribute('text-anchor','end');ytl.setAttribute('font-size','22');ytl.setAttribute('font-weight','700');ytl.setAttribute('fill','#e2e8f0');ytl.textContent=selectedYr; svg.appendChild(ytl);
+
+      // background dots (other districts)
+      pts.forEach(p=>{
+        if(p.gu===guA||p.gu===guB) return;
+        const cx=xP(p.crime), cy=yP(p.arrest);
+        const c=document.createElementNS(NS2,'circle'); c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','5');c.setAttribute('fill','#94a3b8');c.setAttribute('fill-opacity','.5');c.setAttribute('stroke','white');c.setAttribute('stroke-width','1');
+        const tt=document.createElementNS(NS2,'title'); tt.textContent=p.gu; c.appendChild(tt); svg.appendChild(c);
+        const t=document.createElementNS(NS2,'text'); t.setAttribute('x',cx+7);t.setAttribute('y',cy+4);t.setAttribute('font-size','9');t.setAttribute('fill','#94a3b8');t.textContent=p.gu.replace('구',''); svg.appendChild(t);
+      });
+
+      // highlighted districts
+      [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([gu,color])=>{
+        const p=pts.find(d=>d.gu===gu); if(!p) return;
+        const cx=xP(p.crime), cy=yP(p.arrest);
+        const glow=document.createElementNS(NS2,'circle'); glow.setAttribute('cx',cx);glow.setAttribute('cy',cy);glow.setAttribute('r','18');glow.setAttribute('fill',color);glow.setAttribute('fill-opacity','.18'); svg.appendChild(glow);
+        const c=document.createElementNS(NS2,'circle'); c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','9');c.setAttribute('fill',color);c.setAttribute('stroke','white');c.setAttribute('stroke-width','2'); svg.appendChild(c);
+        const label=`${gu}  ${p.crime.toFixed(0)} / ${p.arrest.toFixed(1)}%`;
+        const t=document.createElementNS(NS2,'text'); t.setAttribute('x',cx+14);t.setAttribute('y',cy-10);t.setAttribute('font-size','12');t.setAttribute('font-weight','700');t.setAttribute('fill',color);
+        t.style.paintOrder='stroke'; t.style.stroke='white'; t.style.strokeWidth='3px';
+        t.textContent=label; svg.appendChild(t);
+      });
     }
-    for(let i=0;i<=5;i++){
-      const yv=minArrest+(maxArrest-minArrest)/5*i, y=yP(yv);
-      const tk=document.createElementNS(NS2,'line'); tk.setAttribute('x1',ml-5);tk.setAttribute('x2',ml);tk.setAttribute('y1',y);tk.setAttribute('y2',y);tk.setAttribute('stroke','#94a3b8'); svg.appendChild(tk);
-      const t=document.createElementNS(NS2,'text'); t.setAttribute('x',ml-10);t.setAttribute('y',y+4);t.setAttribute('text-anchor','end');t.setAttribute('font-size','11');t.setAttribute('fill','#64748b');t.textContent=yv.toFixed(1)+'%'; svg.appendChild(t);
+
+    // initial draw
+    draw(yr);
+
+    // wire up slider (created fresh each time panel opens)
+    const slider = document.getElementById('twoScatterYearSlider');
+    const label  = document.getElementById('twoScatterYearLabel');
+    if (slider) {
+      slider.value = yr;
+      // remove previous listener by replacing element
+      const newSlider = slider.cloneNode(true);
+      slider.parentNode.replaceChild(newSlider, slider);
+      newSlider.addEventListener('input', e => {
+        const y = e.target.value;
+        if (label) label.textContent = y;
+        draw(y);
+      });
     }
-
-    const xl=document.createElementNS(NS2,'text'); xl.setAttribute('x',ml+iW/2);xl.setAttribute('y',H-8);xl.setAttribute('text-anchor','middle');xl.setAttribute('font-size','13');xl.setAttribute('font-weight','600');xl.setAttribute('fill','#475569');xl.textContent='범죄율 (10만명당)'; svg.appendChild(xl);
-    const yl=document.createElementNS(NS2,'text'); yl.setAttribute('transform',`rotate(-90)`);yl.setAttribute('x',-(mt+iH/2));yl.setAttribute('y',16);yl.setAttribute('text-anchor','middle');yl.setAttribute('font-size','13');yl.setAttribute('font-weight','600');yl.setAttribute('fill','#475569');yl.textContent='검거율 (%)'; svg.appendChild(yl);
-
-    pts.forEach(p=>{
-      if(p.gu===guA||p.gu===guB) return;
-      const cx=xP(p.crime), cy=yP(p.arrest);
-      const c=document.createElementNS(NS2,'circle'); c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','6');c.setAttribute('fill','#94a3b8');c.setAttribute('fill-opacity','.6');c.setAttribute('stroke','white');
-      c.appendChild(document.createElementNS(NS2,'title')).textContent=p.gu; svg.appendChild(c);
-      const t=document.createElementNS(NS2,'text'); t.setAttribute('x',cx+8);t.setAttribute('y',cy+4);t.setAttribute('font-size','10');t.setAttribute('fill','#94a3b8');t.textContent=p.gu.replace('구',''); svg.appendChild(t);
-    });
-
-    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([gu,color])=>{
-      const p=pts.find(d=>d.gu===gu); if(!p) return;
-      const cx=xP(p.crime), cy=yP(p.arrest);
-      const glow=document.createElementNS(NS2,'circle'); glow.setAttribute('cx',cx);glow.setAttribute('cy',cy);glow.setAttribute('r','16');glow.setAttribute('fill',color);glow.setAttribute('fill-opacity','.2'); svg.appendChild(glow);
-      const c=document.createElementNS(NS2,'circle'); c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','8');c.setAttribute('fill',color);c.setAttribute('stroke','white');c.setAttribute('stroke-width','2'); svg.appendChild(c);
-      const bg=document.createElementNS(NS2,'rect'), text=`${gu} (${p.crime.toFixed(0)}, ${p.arrest.toFixed(1)}%)`;
-      bg.setAttribute('x',cx+12);bg.setAttribute('y',cy-12);bg.setAttribute('width',text.length*7.5);bg.setAttribute('height',20);bg.setAttribute('fill',color);bg.setAttribute('fill-opacity','.1');bg.setAttribute('rx','4'); svg.appendChild(bg);
-      const t=document.createElementNS(NS2,'text'); t.setAttribute('x',cx+16);t.setAttribute('y',cy+2);t.setAttribute('font-size','12');t.setAttribute('font-weight','700');t.setAttribute('fill',color);t.textContent=text; svg.appendChild(t);
-    });
   }
 
   function renderTwoRadarChart(guA, guB, yr) {
@@ -783,14 +831,14 @@
     
     const W = 500, H = 420, cx = W/2, cy = H/2 - 10, R = 150;
     const types = getSelectedCrimeTypes();
-    const LABELS = {murder:'살인', robbery:'강도', theft:'절도', violence:'폭력', rape:'강간/추행'};
+    const LABELS = {murder:'Murder', robbery:'Robbery', theft:'Theft', violence:'Violence', rape:'Sexual Assault'};
     const COLORS = {murder:'#e63946', robbery:'#f97316', theft:'#eab308', violence:'#06a77d', rape:'#3b82f6'};
     
     if (types.length < 3) {
       const t = document.createElementNS(NS2, 'text');
       t.setAttribute('x', cx); t.setAttribute('y', cy);
       t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '14');
-      t.setAttribute('fill', '#94a3b8'); t.textContent = '레이더 차트는 3개 이상 선택 시 나타납니다';
+      t.setAttribute('fill', '#94a3b8'); t.textContent = 'Select at least 3 crime types to display the radar chart';
       svg.appendChild(t);
       return;
     }
@@ -830,8 +878,8 @@
 
   function renderTwoBarChart2(guA, guB, yr) {
     const dA=state.crimeData[guA]?.[yr]||{}, dB=state.crimeData[guB]?.[yr]||{};
-    [[document.getElementById('twoBarSvg'), [dA.crime||0, dB.crime||0], '범죄율 (10만명당)'],
-     [document.getElementById('twoArrestBarSvg'), [dA.arrest||0, dB.arrest||0], '검거율 (%)']].forEach(([svg, vals, title])=>{
+    [[document.getElementById('twoBarSvg'), [dA.crime||0, dB.crime||0], 'Crime Rate (per 100k)'],
+     [document.getElementById('twoArrestBarSvg'), [dA.arrest||0, dB.arrest||0], 'Arrest Rate (%)']].forEach(([svg, vals, title])=>{
       if(!svg) return; svg.innerHTML='';
       const W=420, H=220, ml=20, mr=20, mt=44, mb=36, iW=W-ml-mr, iH=H-mt-mb;
       const maxV=Math.max(...vals,1), barW=iW/2-24, colors=['#3b82f6','#f97316'], names=[guA,guB];
@@ -856,7 +904,7 @@
     const types = getSelectedCrimeTypes(); 
     if(!types.length) return;
     
-    const LABELS={murder:'살인', robbery:'강도', theft:'절도', violence:'폭력', rape:'강간/추행'};
+    const LABELS={murder:'Murder', robbery:'Robbery', theft:'Theft', violence:'Violence', rape:'Sexual Assault'};
     const dA=state.crimeData[guA]?.[yr]?.occur||{}, dB=state.crimeData[guB]?.[yr]?.occur||{};
     const maxV=Math.max(...types.flatMap(k=>[dA[k]||0,dB[k]||0]),1);
     const step=iW/types.length, barW=step*.28;
@@ -887,7 +935,7 @@
   }
 
   /* =========================================================
-   * 5. 초기화 및 비동기 데이터 로드 실행
+   * 5. Initialization and async data load
    * ========================================================= */
   waitForData(async () => {
     await loadExternalData(); 
