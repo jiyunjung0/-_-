@@ -597,11 +597,12 @@
     s.id = 'compareTwoJiyunStyles';
     s.textContent = `
   .app { transition: grid-template-columns .4s cubic-bezier(.4,0,.2,1); }
-  .app.compare-mode { grid-template-columns: 0px 1fr 500px !important; }
+  .app.compare-mode { grid-template-columns: 0px 1fr 560px !important; }
   .sidebar {
     transition: opacity .3s, transform .4s cubic-bezier(.4,0,.2,1);
     overflow: hidden;
   }
+  .app.compare-mode .main { overflow-y: auto; }
   .app.compare-mode .sidebar {
     opacity:0; pointer-events:none;
     transform:translateX(-20px); width:0; padding:0; min-width:0;
@@ -609,7 +610,7 @@
 
   /* right panel */
   .compare-panel {
-    display:none; width:500px; min-width:0;
+    display:none; width:560px; min-width:0;
     background:var(--bg-secondary); border-left:1px solid var(--border);
     overflow-y:auto; position:sticky; top:0; height:100vh;
     opacity:0; transform:translateX(30px);
@@ -719,7 +720,7 @@
       panel.innerHTML = `
         <div class="cp-header">
           <div>
-            <div class="cp-header-title">구 비교</div>
+            <div class="cp-header-title">District Comparison</div>
             <div class="cp-header-names">
               <div class="cp-header-name"><div class="cp-header-dot" style="background:var(--accent-blue)"></div><span id="cpNameA">—</span></div>
               <span style="color:var(--text-tertiary)">vs</span>
@@ -731,7 +732,7 @@
         </div>
         <div class="cp-body">
           <div>
-            <div class="cp-section-label">동별 분포</div>
+            <div class="cp-section-label">Neighborhood Distribution</div>
             <div class="cp-map-row">
               <div class="cp-map-card card-a">
                 <div class="cp-map-label" id="cpMapLabelA">—</div>
@@ -745,27 +746,27 @@
               </div>
             </div>
             <div class="cp-map-legend">
-              <span class="cp-map-legend-item"><span class="cp-ldot cctv"></span>CCTV 설치비율 (원 크기)</span>
-              <span class="cp-map-legend-item"><span class="cp-ldot police"></span>지구대·파출소</span>
+              <span class="cp-map-legend-item"><span class="cp-ldot cctv"></span>CCTV Installation Ratio (circle size)</span>
+              <span class="cp-map-legend-item"><span class="cp-ldot police"></span>Police Station</span>
             </div>
           </div>
 
           <div>
-            <div class="cp-section-label">주요 지표</div>
+            <div class="cp-section-label">Key Metrics</div>
             <div class="cp-stat-row">
               <div class="cp-stat-card card-a">
                 <h3 id="cpStatNameA">—</h3>
                 <div class="cp-stat-items">
-                  <div><div class="cp-stat-lbl">범죄율</div><div class="cp-stat-val crime" id="cpStatCrimeA">—</div></div>
-                  <div><div class="cp-stat-lbl">검거율</div><div class="cp-stat-val arrest" id="cpStatArrestA">—</div></div>
+                  <div><div class="cp-stat-lbl">Crime Rate</div><div class="cp-stat-val crime" id="cpStatCrimeA">—</div></div>
+                  <div><div class="cp-stat-lbl">Arrest Rate</div><div class="cp-stat-val arrest" id="cpStatArrestA">—</div></div>
                   <div><div class="cp-stat-lbl">CCTV</div><div class="cp-stat-val" style="font-size:14px" id="cpStatCctvA">—</div></div>
                 </div>
               </div>
               <div class="cp-stat-card card-b">
                 <h3 id="cpStatNameB">—</h3>
                 <div class="cp-stat-items">
-                  <div><div class="cp-stat-lbl">범죄율</div><div class="cp-stat-val crime" id="cpStatCrimeB">—</div></div>
-                  <div><div class="cp-stat-lbl">검거율</div><div class="cp-stat-val arrest" id="cpStatArrestB">—</div></div>
+                  <div><div class="cp-stat-lbl">Crime Rate</div><div class="cp-stat-val crime" id="cpStatCrimeB">—</div></div>
+                  <div><div class="cp-stat-lbl">Arrest Rate</div><div class="cp-stat-val arrest" id="cpStatArrestB">—</div></div>
                   <div><div class="cp-stat-lbl">CCTV</div><div class="cp-stat-val" style="font-size:14px" id="cpStatCctvB">—</div></div>
                 </div>
               </div>
@@ -773,34 +774,34 @@
           </div>
 
           <div class="cp-chart">
-            <div class="cp-chart-title">범죄율 · 검거율 비교</div>
+            <div class="cp-chart-title">Crime Rate · Arrest Rate Comparison</div>
             <svg id="cpBarSvg" width="100%" viewBox="0 0 440 180" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
 
           <div class="cp-chart">
-            <div class="cp-chart-title">5대 범죄 레이더</div>
+            <div class="cp-chart-title">Five Major Crime Types — Radar</div>
             <div class="cp-filter" id="cpFilterList">
-              <label class="cp-filter-item" data-key="murder"><input type="checkbox" checked><span class="cp-fdot" style="background:#e63946"></span>살인</label>
-              <label class="cp-filter-item" data-key="robbery"><input type="checkbox" checked><span class="cp-fdot" style="background:#f97316"></span>강도</label>
-              <label class="cp-filter-item" data-key="theft"><input type="checkbox" checked><span class="cp-fdot" style="background:#eab308"></span>절도</label>
-              <label class="cp-filter-item" data-key="violence"><input type="checkbox" checked><span class="cp-fdot" style="background:#06a77d"></span>폭력</label>
-              <label class="cp-filter-item" data-key="rape"><input type="checkbox" checked><span class="cp-fdot" style="background:#3b82f6"></span>성폭력</label>
+              <label class="cp-filter-item" data-key="murder"><input type="checkbox" checked><span class="cp-fdot" style="background:#e63946"></span>Murder</label>
+              <label class="cp-filter-item" data-key="robbery"><input type="checkbox" checked><span class="cp-fdot" style="background:#f97316"></span>Robbery</label>
+              <label class="cp-filter-item" data-key="theft"><input type="checkbox" checked><span class="cp-fdot" style="background:#eab308"></span>Theft</label>
+              <label class="cp-filter-item" data-key="violence"><input type="checkbox" checked><span class="cp-fdot" style="background:#06a77d"></span>Violence</label>
+              <label class="cp-filter-item" data-key="rape"><input type="checkbox" checked><span class="cp-fdot" style="background:#3b82f6"></span>Sexual Assault</label>
             </div>
             <svg id="cpRadarSvg" width="100%" viewBox="0 0 440 300" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
 
           <div class="cp-chart">
-            <div class="cp-chart-title">범죄 유형별 건수</div>
+            <div class="cp-chart-title">Incidents by Crime Type</div>
             <svg id="cpCrimeSvg" width="100%" viewBox="0 0 440 200" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
 
           <div class="cp-chart">
-            <div class="cp-chart-title">연도별 범죄율 추이</div>
+            <div class="cp-chart-title">Crime Rate Trend by Year</div>
             <svg id="cpTrendSvg" width="100%" viewBox="0 0 440 180" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
 
           <div class="cp-chart">
-            <div class="cp-chart-title">서울 25개 구 포지셔닝</div>
+            <div class="cp-chart-title">Seoul 25 Districts — Positioning</div>
             <svg id="cpScatterSvg" width="100%" viewBox="0 0 440 280" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
         </div>`;
@@ -814,9 +815,9 @@
         const block = document.createElement('div');
         block.className = 'control-block';
         block.innerHTML =
-          '<div class="control-label"><span>구 비교</span></div>' +
-          '<button class="compare-two-btn" id="startCompareTwoBtn">↔ 두 구 비교하기</button>' +
-          '<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;line-height:1.5" id="compareTwoHint">지도에서 두 구를 클릭하세요</div>';
+          '<div class="control-label"><span>Compare Districts</span></div>' +
+          '<button class="compare-two-btn" id="startCompareTwoBtn">↔ Compare Two Districts</button>' +
+          '<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;line-height:1.5" id="compareTwoHint">Click two districts on the map</div>';
         sb.appendChild(block);
       }
     }
@@ -850,15 +851,15 @@
     document.getElementById('cpYear').textContent  = yr + '년';
     document.getElementById('cpMapLabelA').textContent = guA;
     document.getElementById('cpMapLabelB').textContent = guB;
-    document.getElementById('cpMapSubA').textContent = `범죄율 ${dA.crime?.toFixed(1)||'—'} · 검거율 ${dA.arrest?.toFixed(1)||'—'}%`;
-    document.getElementById('cpMapSubB').textContent = `범죄율 ${dB.crime?.toFixed(1)||'—'} · 검거율 ${dB.arrest?.toFixed(1)||'—'}%`;
+    document.getElementById('cpMapSubA').textContent = `Crime ${dA.crime?.toFixed(1)||'—'} · Arrest ${dA.arrest?.toFixed(1)||'—'}%`;
+    document.getElementById('cpMapSubB').textContent = `Crime ${dB.crime?.toFixed(1)||'—'} · Arrest ${dB.arrest?.toFixed(1)||'—'}%`;
 
     ['A','B'].forEach(g => {
       const gu=g==='A'?guA:guB, d=g==='A'?dA:dB, cc=g==='A'?cctvA:cctvB;
       document.getElementById(`cpStatName${g}`).textContent  = gu;
       document.getElementById(`cpStatCrime${g}`).textContent = d.crime?.toFixed(1)||'—';
       document.getElementById(`cpStatArrest${g}`).textContent= (d.arrest?.toFixed(1)||'—')+'%';
-      document.getElementById(`cpStatCctv${g}`).textContent  = cc>0 ? cc.toLocaleString()+'대' : '—';
+      document.getElementById(`cpStatCctv${g}`).textContent  = cc>0 ? cc.toLocaleString()+' units' : '—';
     });
 
     renderCpMiniMap('cpMapSvgA', guA, 'a');
@@ -958,7 +959,7 @@
     const svg=document.getElementById('cpBarSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
     const W=440,H=180,ml=46,mr=18,mt=18,mb=38,iW=W-ml-mr,iH=H-mt-mb;
     const dA=state.crimeData[guA]?.[yr]||{},dB=state.crimeData[guB]?.[yr]||{};
-    const items=[{l:'범죄율',vA:dA.crime||0,vB:dB.crime||0},{l:'검거율',vA:dA.arrest||0,vB:dB.arrest||0}];
+    const items=[{l:'Crime Rate',vA:dA.crime||0,vB:dB.crime||0},{l:'Arrest Rate',vA:dA.arrest||0,vB:dB.arrest||0}];
     const maxV=Math.max(...items.map(d=>Math.max(d.vA,d.vB)),1)*1.15;
     const step=iW/items.length,bw=step*.28;
     [0,.25,.5,.75,1].forEach(t=>{const y=mt+iH*(1-t);const l=mk('line');l.setAttribute('x1',ml);l.setAttribute('x2',W-mr);l.setAttribute('y1',y);l.setAttribute('y2',y);l.setAttribute('stroke','#e4e7eb');l.setAttribute('stroke-width','1');svg.appendChild(l);const tx=mk('text');tx.setAttribute('x',ml-5);tx.setAttribute('y',y+4);tx.setAttribute('text-anchor','end');tx.setAttribute('font-size','9');tx.setAttribute('fill','#94a3b8');tx.textContent=(maxV*t).toFixed(1);svg.appendChild(tx);});
@@ -971,7 +972,7 @@
   function renderCpRadarChart(guA,guB,yr){
     const svg=document.getElementById('cpRadarSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
     const W=440,H=300,cx=W/2,cy=H/2-5,R=105;
-    const LABELS={murder:'살인',robbery:'강도',theft:'절도',violence:'폭력',rape:'성폭력'};
+    const LABELS={murder:'Murder',robbery:'Robbery',theft:'Theft',violence:'Violence',rape:'Sexual Assault'};
     const COLORS={murder:'#e63946',robbery:'#f97316',theft:'#eab308',violence:'#06a77d',rape:'#3b82f6'};
     const types=getActiveTypes(); if(!types.length){const t=mk('text');t.setAttribute('x','220');t.setAttribute('y','150');t.setAttribute('text-anchor','middle');t.setAttribute('fill','#94a3b8');t.setAttribute('font-size','13');t.textContent='범죄 유형을 선택하세요';svg.appendChild(t);return;}
     const dA=state.crimeData[guA]?.[yr]?.occur||{},dB=state.crimeData[guB]?.[yr]?.occur||{};
@@ -987,7 +988,7 @@
   function renderCpCrimeChart(guA,guB,yr){
     const svg=document.getElementById('cpCrimeSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
     const W=440,H=200,ml=42,mr=14,mt=16,mb=48,iW=W-ml-mr,iH=H-mt-mb;
-    const LABELS={murder:'살인',robbery:'강도',theft:'절도',violence:'폭력',rape:'성폭력'};
+    const LABELS={murder:'Murder',robbery:'Robbery',theft:'Theft',violence:'Violence',rape:'Sexual Assault'};
     const types=getActiveTypes(); if(!types.length) return;
     const dA=state.crimeData[guA]?.[yr]?.occur||{},dB=state.crimeData[guB]?.[yr]?.occur||{};
     const maxV=Math.max(...types.flatMap(k=>[dA[k]||0,dB[k]||0]),1)*1.15;
@@ -1019,10 +1020,10 @@
     const xP=v=>ml+v/maxC*iW,yP=v=>mt+iH*(1-v/maxA);
     const ax=mk('line');ax.setAttribute('x1',ml);ax.setAttribute('x2',W-mr);ax.setAttribute('y1',mt+iH);ax.setAttribute('y2',mt+iH);ax.setAttribute('stroke','#cbd2d9');ax.setAttribute('stroke-width','1');svg.appendChild(ax);
     const ay=mk('line');ay.setAttribute('x1',ml);ay.setAttribute('x2',ml);ay.setAttribute('y1',mt);ay.setAttribute('y2',mt+iH);ay.setAttribute('stroke','#cbd2d9');ay.setAttribute('stroke-width','1');svg.appendChild(ay);
-    pts.forEach(p=>{if(p.gu===guA||p.gu===guB) return;const cx=xP(p.crime),cy=yP(p.arrest);const c=mk('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','4');c.setAttribute('fill','#94a3b8');c.setAttribute('fill-opacity','.5');c.setAttribute('stroke','white');c.setAttribute('stroke-width','1.5');const tt=mk('title');tt.textContent=`${p.gu} 범죄율:${p.crime.toFixed(1)} 검거율:${p.arrest.toFixed(1)}%`;c.appendChild(tt);svg.appendChild(c);const t=mk('text');t.setAttribute('x',cx+6);t.setAttribute('y',cy+4);t.setAttribute('font-size','8');t.setAttribute('fill','#94a3b8');t.textContent=p.gu.replace('구','');svg.appendChild(t);});
+    pts.forEach(p=>{if(p.gu===guA||p.gu===guB) return;const cx=xP(p.crime),cy=yP(p.arrest);const c=mk('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','4');c.setAttribute('fill','#94a3b8');c.setAttribute('fill-opacity','.5');c.setAttribute('stroke','white');c.setAttribute('stroke-width','1.5');const tt=mk('title');tt.textContent=`${p.gu} — Crime:${p.crime.toFixed(1)} Arrest:${p.arrest.toFixed(1)}%`;c.appendChild(tt);svg.appendChild(c);const t=mk('text');t.setAttribute('x',cx+6);t.setAttribute('y',cy+4);t.setAttribute('font-size','8');t.setAttribute('fill','#94a3b8');t.textContent=p.gu.replace('구','');svg.appendChild(t);});
     [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([gu,color])=>{const p=pts.find(d=>d.gu===gu);if(!p) return;const cx=xP(p.crime),cy=yP(p.arrest);const glow=mk('circle');glow.setAttribute('cx',cx);glow.setAttribute('cy',cy);glow.setAttribute('r','14');glow.setAttribute('fill',color);glow.setAttribute('fill-opacity','.15');svg.appendChild(glow);const c=mk('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','7');c.setAttribute('fill',color);c.setAttribute('stroke','white');c.setAttribute('stroke-width','2');svg.appendChild(c);const t=mk('text');t.setAttribute('x',cx+11);t.setAttribute('y',cy-8);t.setAttribute('font-size','11');t.setAttribute('font-weight','700');t.setAttribute('fill',color);t.textContent=gu;svg.appendChild(t);});
-    const xl=mk('text');xl.setAttribute('x',ml+iW/2);xl.setAttribute('y',H-mb+26);xl.setAttribute('text-anchor','middle');xl.setAttribute('font-size','10');xl.setAttribute('fill','#94a3b8');xl.textContent='범죄율 →';svg.appendChild(xl);
-    const yl=mk('text');yl.setAttribute('x',ml-30);yl.setAttribute('y',mt+iH/2);yl.setAttribute('text-anchor','middle');yl.setAttribute('font-size','10');yl.setAttribute('fill','#94a3b8');yl.setAttribute('transform',`rotate(-90,${ml-30},${mt+iH/2})`);yl.textContent='검거율 →';svg.appendChild(yl);
+    const xl=mk('text');xl.setAttribute('x',ml+iW/2);xl.setAttribute('y',H-mb+26);xl.setAttribute('text-anchor','middle');xl.setAttribute('font-size','10');xl.setAttribute('fill','#94a3b8');xl.textContent='Crime Rate →';svg.appendChild(xl);
+    const yl=mk('text');yl.setAttribute('x',ml-30);yl.setAttribute('y',mt+iH/2);yl.setAttribute('text-anchor','middle');yl.setAttribute('font-size','10');yl.setAttribute('fill','#94a3b8');yl.setAttribute('transform',`rotate(-90,${ml-30},${mt+iH/2})`);yl.textContent='Arrest Rate →';svg.appendChild(yl);
   }
 
   /* =========================================================
@@ -1035,9 +1036,9 @@
     const hint=document.getElementById('compareTwoHint');
     const banner=document.getElementById('mapSelectBanner');
     if(compareTwoState.active){
-      btn.textContent='✕ 비교 취소'; btn.classList.add('selecting');
-      hint.textContent='첫 번째 구를 클릭하세요 (0/2)';
-      banner.textContent='🖱 첫 번째 구를 클릭하세요 (1/2)';
+      btn.textContent='✕ Cancel'; btn.classList.add('selecting');
+      hint.textContent='Click the 1st district (0/2)';
+      banner.textContent='🖱 Click 1st district (1/2)';
       banner.classList.add('visible');
       if(typeof closeModal==='function') closeModal();
     } else { resetCompareTwoMode(); }
@@ -1046,8 +1047,8 @@
   function resetCompareTwoMode(){
     compareTwoState.active=false; compareTwoState.guA=null; compareTwoState.guB=null;
     const btn=document.getElementById('startCompareTwoBtn');
-    btn.textContent='↔ 두 구 비교하기'; btn.classList.remove('selecting');
-    document.getElementById('compareTwoHint').textContent='지도에서 두 구를 클릭하세요';
+    btn.textContent='↔ Compare Two Districts'; btn.classList.remove('selecting');
+    document.getElementById('compareTwoHint').textContent='Click two districts on the map';
     document.getElementById('mapSelectBanner').classList.remove('visible');
     document.querySelectorAll('.gu-path').forEach(p=>p.classList.remove('compare-selected-a','compare-selected-b'));
   }
@@ -1070,8 +1071,8 @@
     if(!compareTwoState.active){_baseSelectGu(guName);return;}
     if(!compareTwoState.guA){
       compareTwoState.guA=guName;
-      document.getElementById('compareTwoHint').textContent=`✔ ${guName} 선택됨. 두 번째 구를 클릭하세요 (1/2)`;
-      document.getElementById('mapSelectBanner').textContent='🖱 두 번째 구를 클릭하세요 (2/2)';
+      document.getElementById('compareTwoHint').textContent=`✔ ${guName} selected. Click 2nd district (1/2)`;
+      document.getElementById('mapSelectBanner').textContent='🖱 Click 2nd district (2/2)';
       renderMainMap();
     } else if(!compareTwoState.guB&&guName!==compareTwoState.guA){
       compareTwoState.guB=guName;
