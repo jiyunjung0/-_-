@@ -156,14 +156,14 @@
       const yl=document.createElementNS(NS,'line');
       yl.setAttribute('x1',ml-5);yl.setAttribute('x2',ml);yl.setAttribute('y1',y);yl.setAttribute('y2',y);yl.setAttribute('stroke','#94a3b8'); svg.appendChild(yl);
       const yt=document.createElementNS(NS,'text');
-      yt.setAttribute('x',ml-8);yt.setAttribute('y',y+4);yt.setAttribute('text-anchor','end');yt.setAttribute('font-size','11');yt.setAttribute('fill','#64748b');yt.textContent=yv.toFixed(1)+'%'; svg.appendChild(yt);
+      yt.setAttribute('x',ml-10);yt.setAttribute('y',y+4);yt.setAttribute('text-anchor','end');yt.setAttribute('font-size','11');yt.setAttribute('fill','#64748b');yt.textContent=yv.toFixed(1)+'%'; svg.appendChild(yt);
     }
 
     // axis labels
     const xl=document.createElementNS(NS,'text');
-    xl.setAttribute('x',ml+iW/2);xl.setAttribute('y',H-6);xl.setAttribute('text-anchor','middle');xl.setAttribute('font-size','12');xl.setAttribute('font-weight','600');xl.setAttribute('fill','#475569');xl.textContent='Crime Rate (per 100k)'; svg.appendChild(xl);
+    xl.setAttribute('x',ml+iW/2);xl.setAttribute('y',H-4);xl.setAttribute('text-anchor','middle');xl.setAttribute('font-size','12');xl.setAttribute('font-weight','600');xl.setAttribute('fill','#475569');xl.textContent='Crime Rate (per 100k)'; svg.appendChild(xl);
     const yl2=document.createElementNS(NS,'text');
-    yl2.setAttribute('transform','rotate(-90)');yl2.setAttribute('x',-(mt+iH/2));yl2.setAttribute('y',14);yl2.setAttribute('text-anchor','middle');yl2.setAttribute('font-size','12');yl2.setAttribute('font-weight','600');yl2.setAttribute('fill','#475569');yl2.textContent='Arrest Rate (%)'; svg.appendChild(yl2);
+    yl2.setAttribute('transform','rotate(-90)');yl2.setAttribute('x',-(mt+iH/2));yl2.setAttribute('y',12);yl2.setAttribute('text-anchor','middle');yl2.setAttribute('font-size','12');yl2.setAttribute('font-weight','600');yl2.setAttribute('fill','#475569');yl2.textContent='Arrest Rate (%)'; svg.appendChild(yl2);
 
     // quadrant text labels
     [
@@ -215,8 +215,12 @@
 
       document.addEventListener('pointermove', function(e) {
         const el = document.elementFromPoint(e.clientX, e.clientY);
+        // accept both main circle and transparent hitArea
         const hitCircle = el && el.tagName === 'circle' && el.dataset.gu ? el : null;
-        const newGu = hitCircle ? hitCircle.dataset.gu : null;
+        // also check parent <g> for data-gu on circle child
+        const hitG = el && el.closest && el.closest('.scatter-dot-g');
+        const hitFromG = hitG ? hitG.querySelector('circle[data-gu]') : null;
+        const newGu = hitCircle ? hitCircle.dataset.gu : (hitFromG ? hitFromG.dataset.gu : null);
 
         // update tooltip position if same dot
         if (newGu === _hoveredGu) {
@@ -361,6 +365,17 @@
         circle.setAttribute('class', 'main-dot');
         circle.style.cursor = 'pointer';
         g.appendChild(circle);
+
+        // large transparent hit area so overlapping dots are easier to hover
+        const hitArea = document.createElementNS(NS, 'circle');
+        hitArea.setAttribute('cx', 0); hitArea.setAttribute('cy', 0);
+        hitArea.setAttribute('r', '14'); hitArea.setAttribute('fill', 'transparent');
+        hitArea.setAttribute('stroke', 'none');
+        hitArea.dataset.gu = p.gu;
+        hitArea.style.cursor = 'pointer';
+        hitArea.addEventListener('click', () => selectGu(p.gu));
+        g.appendChild(hitArea);
+
         svg.appendChild(g);
 
         // leader line when label is far from point
@@ -407,7 +422,7 @@
     if (!svg || !state.crimeData) return;
 
     const W = 800, H = 280;
-    const ml = 44, mr = 20, mt = 20, mb = 48;
+    const ml = 58, mr = 20, mt = 20, mb = 52;
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.style.maxHeight = '280px';
     const iW = W-ml-mr, iH = H-mt-mb;
@@ -459,6 +474,12 @@
     window.onBrushUpdate = function(brushedGus) {
       _brushedSet.clear();
       brushedGus.forEach(gu => _brushedSet.add(gu));
+
+      // if dots not yet rendered, trigger a render first
+      if (Object.keys(_dotMap).length === 0) {
+        renderMainScatterEnhanced();
+        return;
+      }
       applyBrushedStyles();
     };
   });
