@@ -200,10 +200,81 @@
   function renderDotsLayer(svg, points, xP, yP, W, H, ml, mr, mt, mb) {
     const tooltip = document.getElementById('scatterTooltip');
 
-    // SVG-level safety net: if mouse leaves the entire chart, reset all dots
-    if (!svg._jiyunLeaveSet) {
-      svg.addEventListener('mouseleave', () => resetAllDots());
-      svg._jiyunLeaveSet = true;
+    // document-level pointer tracking — never misses mouseleave
+    if (!svg._jiyunMoveSet) {
+      const tooltip = document.getElementById('scatterTooltip');
+      let _hoveredGu = null;
+
+      document.addEventListener('pointermove', function(e) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const hitCircle = el && el.tagName === 'circle' && el.dataset.gu ? el : null;
+        const newGu = hitCircle ? hitCircle.dataset.gu : null;
+
+        if (newGu === _hoveredGu) {
+          // same dot — just update tooltip position
+          if (newGu && tooltip && tooltip.style.display === 'block') {
+            const wrap = svg.closest('div');
+            if (wrap) {
+              const rect = wrap.getBoundingClientRect();
+              tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+              tooltip.style.top  = (e.clientY - rect.top  - 40) + 'px';
+            }
+          }
+          return;
+        }
+
+        // leaving a dot
+        if (_hoveredGu) resetAllDots();
+
+        _hoveredGu = newGu;
+
+        if (!newGu || !_dotMap[newGu]) return;
+
+        // entering a new dot
+        const { g, circle, glow, lbl } = _dotMap[newGu];
+        const p = Object.values(_dotMap).length && _dotMap[newGu];
+
+        circle.setAttribute('r', '11');
+        circle.setAttribute('fill', '#3b82f6');
+        circle.setAttribute('fill-opacity', '1');
+        glow.setAttribute('r', '22');
+        glow.setAttribute('fill-opacity', '0.18');
+        lbl.classList.add('active');
+        svg.appendChild(g);
+        svg.appendChild(lbl);
+
+        Object.entries(_dotMap).forEach(([gu, d]) => {
+          if (gu !== newGu) {
+            d.g.style.opacity = '0.2';
+            d.lbl.style.opacity = '0.15';
+          }
+        });
+
+        highlightMapGu(newGu);
+
+        // find crime/arrest values for tooltip
+        const svgEl = document.getElementById('mainScatterSvg');
+        const yr = typeof state !== 'undefined' ? state.year : null;
+        const crime  = yr && state.crimeData?.[newGu]?.[yr]?.crime;
+        const arrest = yr && state.crimeData?.[newGu]?.[yr]?.arrest;
+
+        if (tooltip) {
+          tooltip.style.display = 'block';
+          tooltip.innerHTML = `
+            <span style="font-size:14px;font-weight:700">${newGu}</span><br>
+            <span style="color:#fca5a5">Crime Rate ${crime ? crime.toFixed(1) : '—'}</span>
+            &nbsp;<span style="opacity:0.4">|</span>&nbsp;
+            <span style="color:#6ee7b7">Arrest Rate ${arrest ? arrest.toFixed(1) : '—'}%</span>`;
+          const wrap = svg.closest('div');
+          if (wrap) {
+            const rect = wrap.getBoundingClientRect();
+            tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+            tooltip.style.top  = (e.clientY - rect.top  - 40) + 'px';
+          }
+        }
+      });
+
+      svg._jiyunMoveSet = true;
     }
 
     // compute collision-aware label positions
@@ -304,48 +375,8 @@
         lbl.textContent = p.gu;
         svg.appendChild(lbl);
 
-        // hover events
-        circle.addEventListener('mouseenter', function () {
-          // enlarge & highlight this dot
-          circle.setAttribute('r', '11');
-          circle.setAttribute('fill', '#3b82f6');
-          circle.setAttribute('fill-opacity', '1');
-          glow.setAttribute('r', '22');
-          glow.setAttribute('fill-opacity', '0.18');
-          lbl.classList.add('active');
-          // bring this group to front
-          svg.appendChild(g);
-          svg.appendChild(lbl);
-
-          // dim all other dots
-          Object.entries(_dotMap).forEach(([gu, d]) => {
-            if (gu !== p.gu) {
-              d.g.style.opacity = '0.2';
-              d.lbl.style.opacity = '0.15';
-            }
-          });
-
-          highlightMapGu(p.gu);
-          if (tooltip) {
-            tooltip.style.display = 'block';
-            tooltip.innerHTML = `
-              <span style="font-size:14px;font-weight:700">${p.gu}</span><br>
-              <span style="color:#fca5a5">Crime Rate ${p.crime.toFixed(1)}</span>
-              &nbsp;<span style="opacity:0.4">|</span>&nbsp;
-              <span style="color:#6ee7b7">Arrest Rate ${p.arrest.toFixed(1)}%</span>`;
-          }
-        });
-
-        circle.addEventListener('mouseleave', () => resetAllDots());
-
-        circle.addEventListener('mousemove', function (e) {
-          if (!tooltip) return;
-          const rect = svg.closest('div').getBoundingClientRect();
-          tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
-          tooltip.style.top  = (e.clientY - rect.top  - 40) + 'px';
-        });
-
         circle.addEventListener('click', () => selectGu(p.gu));
+        circle.dataset.gu = p.gu;
 
         _dotMap[p.gu] = { g, circle, glow, lbl, leaderLine };
       }
