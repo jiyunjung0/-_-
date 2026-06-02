@@ -116,14 +116,55 @@
       .compare-two-btn:hover { background: var(--bg-secondary); }
       .compare-two-btn.selecting { background: var(--text-primary); color: white; border-color: var(--text-primary); }
 
-      .app { transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+      .app { transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
       .app.jiyun-active { display: flex !important; width: 100vw; height: 100vh; overflow: hidden; }
-      .app.jiyun-active .sidebar { display: none !important; }
-      .app.jiyun-active .main { width: 40vw !important; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--border); padding: 24px; transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+      .app.jiyun-active .sidebar { 
+        overflow: hidden;
+        flex-shrink: 0;
+        width: 320px;
+        opacity: 1;
+        transform: translateX(0);
+        transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.3s ease,
+                    transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                    padding 0.45s;
+      }
+      .app.jiyun-active.panel-open .sidebar { 
+        width: 0 !important; 
+        opacity: 0; 
+        padding: 0 !important;
+        transform: translateX(-30px);
+        pointer-events: none;
+      }
+      .app.jiyun-active .main { 
+        flex: 1; overflow-y: auto; border-right: 1px solid var(--border); padding: 24px;
+        transition: flex 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+        min-width: 0;
+      }
+      .app.jiyun-active.panel-open .main {
+        flex: 0 0 38vw;
+      }
       
-      #jiyunSidePanel { display: none; width: 60vw; height: 100vh; background: var(--bg-primary); overflow-y: auto; flex-shrink: 0; animation: slideInRight 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+      #jiyunSidePanel { 
+        display: none; 
+        flex-shrink: 0;
+        width: 0;
+        height: 100vh; 
+        background: var(--bg-primary); 
+        overflow: hidden;
+        opacity: 0;
+        transform: translateX(60px);
+        transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.35s 0.1s ease,
+                    transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      }
       .app.jiyun-active #jiyunSidePanel { display: flex; flex-direction: column; }
-      @keyframes slideInRight { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      .app.jiyun-active.panel-open #jiyunSidePanel { 
+        width: 62vw;
+        opacity: 1; 
+        transform: translateX(0);
+        overflow-y: auto;
+      }
 
       .gu-path.compare-selected-a { stroke: var(--accent-blue) !important; stroke-width: 5 !important; filter: drop-shadow(0 0 6px rgba(59,130,246,0.6)); }
       .gu-path.compare-selected-b { stroke: var(--accent-orange) !important; stroke-width: 5 !important; filter: drop-shadow(0 0 6px rgba(249,115,22,0.6)); }
@@ -277,14 +318,22 @@
     const panel = document.getElementById('jiyunSidePanel');
 
     if (!compareTwoState.guA) {
-      app.classList.remove('jiyun-active');
-      panel.innerHTML = '';
+      // 패널 닫기: panel-open 먼저 제거 → 애니메이션 후 jiyun-active 제거
+      app.classList.remove('panel-open');
+      setTimeout(() => {
+        app.classList.remove('jiyun-active');
+        panel.innerHTML = '';
+      }, 460);
       if (typeof window.renderMainMap === 'function') window.renderMainMap();
       return;
     }
 
+    // 패널 열기: jiyun-active 먼저 → 다음 프레임에 panel-open 추가
     app.classList.add('jiyun-active');
     renderJiyunPanelContent();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => app.classList.add('panel-open'));
+    });
     if (typeof window.renderMainMap === 'function') window.renderMainMap();
   }
 
