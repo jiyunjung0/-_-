@@ -182,8 +182,29 @@
   /* ── dot layer — DOM created once, position updated on re-render ── */
   const _dotMap = {}; // gu → { g, circle, glow, lbl, leaderLine }
 
+  function resetAllDots() {
+    const tooltip = document.getElementById('scatterTooltip');
+    Object.values(_dotMap).forEach(d => {
+      d.g.style.opacity = '';
+      d.lbl.style.opacity = '';
+      d.circle.setAttribute('r', '7');
+      d.circle.setAttribute('fill', '#64748b');
+      d.circle.setAttribute('fill-opacity', '0.65');
+      d.glow.setAttribute('fill-opacity', '0');
+      d.lbl.classList.remove('active');
+    });
+    clearMapHighlight();
+    if (tooltip) tooltip.style.display = 'none';
+  }
+
   function renderDotsLayer(svg, points, xP, yP, W, H, ml, mr, mt, mb) {
     const tooltip = document.getElementById('scatterTooltip');
+
+    // SVG-level safety net: if mouse leaves the entire chart, reset all dots
+    if (!svg._jiyunLeaveSet) {
+      svg.addEventListener('mouseleave', () => resetAllDots());
+      svg._jiyunLeaveSet = true;
+    }
 
     // compute collision-aware label positions
     const _placed = [];
@@ -315,23 +336,7 @@
           }
         });
 
-        circle.addEventListener('mouseleave', function () {
-          circle.setAttribute('r', '7');
-          circle.setAttribute('fill', '#64748b');
-          circle.setAttribute('fill-opacity', '0.65');
-          glow.setAttribute('r', '20');
-          glow.setAttribute('fill-opacity', '0');
-          lbl.classList.remove('active');
-
-          // restore all dots
-          Object.values(_dotMap).forEach(d => {
-            d.g.style.opacity = '';
-            d.lbl.style.opacity = '';
-          });
-
-          clearMapHighlight();
-          if (tooltip) tooltip.style.display = 'none';
-        });
+        circle.addEventListener('mouseleave', () => resetAllDots());
 
         circle.addEventListener('mousemove', function (e) {
           if (!tooltip) return;
