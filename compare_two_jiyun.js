@@ -1,8 +1,8 @@
 /* ============================================================
  *  compare_two_jiyun.js  (jiyun)
  *  Features:
- *   1. Single-page layout: two districts selected →
- *      sidebar slides out, map stays, right panel slides in
+ *   1. Fullscreen overlay modal: two districts selected →
+ *      large centered modal with 2-column chart layout
  *   2. CCTV bubble overlay + police dot overlay on mini-maps
  *   3. CSV data embedded as JS strings → parsed into state
  *  Load AFTER the main page:
@@ -541,6 +541,7 @@
 서울강동	암사	지구대	서울특별시 강동구 양재대로 1663	37.5528700,127.1367400
 서울강동	고덕	파출소	서울특별시 강동구 고덕로 302	37.5548700,127.1567400`;
 
+
   /* =========================================================
    * 2. CSV PARSERS
    * ========================================================= */
@@ -589,148 +590,221 @@
   }
 
   /* =========================================================
-   * 3. CSS
+   * 3. CSS — fullscreen overlay modal
    * ========================================================= */
   function injectStyles() {
     if (document.getElementById('compareTwoJiyunStyles')) return;
     const s = document.createElement('style');
     s.id = 'compareTwoJiyunStyles';
     s.textContent = `
-  .app { transition: grid-template-columns .4s cubic-bezier(.4,0,.2,1); }
-  .app.compare-mode { grid-template-columns: 0px 1fr 560px !important; }
-  .sidebar {
-    transition: opacity .3s, transform .4s cubic-bezier(.4,0,.2,1);
-    overflow: hidden;
+  /* ── overlay backdrop ── */
+  .cp-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(15,23,42,.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+    padding: 24px;
+    animation: cpFadeIn .22s ease;
   }
-  .app.compare-mode .main { overflow-y: auto; }
-  .app.compare-mode .sidebar {
-    opacity:0; pointer-events:none;
-    transform:translateX(-20px); width:0; padding:0; min-width:0;
-  }
+  .cp-overlay.visible { display: flex; }
+  @keyframes cpFadeIn { from{opacity:0} to{opacity:1} }
 
-  /* right panel */
+  /* ── modal card ── */
   .compare-panel {
-    display:none; width:560px; min-width:0;
-    background:var(--bg-secondary); border-left:1px solid var(--border);
-    overflow-y:auto; position:sticky; top:0; height:100vh;
-    opacity:0; transform:translateX(30px);
-    transition: opacity .35s .1s, transform .4s .1s cubic-bezier(.4,0,.2,1);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 32px 80px rgba(15,23,42,.3);
+    width: 100%; max-width: 1200px;
+    max-height: 90vh;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(16px);
+    opacity: 0;
+    transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
   }
-  .compare-panel.visible { display:block; opacity:1; transform:translateX(0); }
+  .cp-overlay.visible .compare-panel {
+    display: flex;
+    transform: translateY(0);
+    opacity: 1;
+  }
 
+  /* ── header ── */
   .cp-header {
-    padding:18px 20px 12px; border-bottom:1px solid var(--border);
-    display:flex; justify-content:space-between; align-items:flex-start;
-    position:sticky; top:0; background:var(--bg-secondary); z-index:10;
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+    background: var(--bg-secondary);
   }
-  .cp-header-title { font-family:'Gowun Batang',serif; font-size:16px; font-weight:700; margin-bottom:5px; }
-  .cp-header-names { display:flex; gap:8px; align-items:center; font-size:12px; }
-  .cp-header-name  { display:flex; align-items:center; gap:4px; font-weight:600; }
-  .cp-header-dot   { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .cp-header-left { display: flex; flex-direction: column; gap: 6px; }
+  .cp-header-title {
+    font-family: 'Gowun Batang', serif;
+    font-size: 20px; font-weight: 700; color: var(--text-primary);
+  }
+  .cp-header-names { display: flex; gap: 10px; align-items: center; font-size: 13px; }
+  .cp-header-name  { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+  .cp-header-dot   { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .cp-close {
-    width:28px; height:28px; border-radius:7px; border:1px solid var(--border);
-    background:transparent; cursor:pointer; font-size:13px; color:var(--text-secondary);
-    display:flex; align-items:center; justify-content:center; transition:background .15s;
+    width: 34px; height: 34px; border-radius: 9px;
+    border: 1px solid var(--border); background: transparent;
+    cursor: pointer; font-size: 15px; color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
   }
-  .cp-close:hover { background:var(--bg-tertiary); }
+  .cp-close:hover { background: var(--bg-tertiary); }
 
-  .cp-body { padding:16px 16px 28px; display:flex; flex-direction:column; gap:18px; }
+  /* ── scrollable body ── */
+  .cp-body {
+    overflow-y: auto;
+    padding: 24px 28px 32px;
+    display: flex; flex-direction: column; gap: 24px;
+    flex: 1; min-height: 0;
+  }
 
   .cp-section-label {
-    font-family:'JetBrains Mono',monospace; font-size:9px;
-    text-transform:uppercase; letter-spacing:.18em; color:var(--text-tertiary); margin-bottom:8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: .18em;
+    color: var(--text-tertiary); margin-bottom: 10px;
   }
 
-  /* mini maps */
-  .cp-map-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .cp-map-card { border:1.5px solid var(--border); border-radius:11px; overflow:hidden; }
-  .cp-map-card.card-a { border-color:rgba(59,130,246,.4); }
-  .cp-map-card.card-b { border-color:rgba(249,115,22,.4); }
-  .cp-map-label { padding:7px 9px 2px; font-weight:700; font-size:13px; }
-  .cp-map-card.card-a .cp-map-label { color:var(--accent-blue); }
-  .cp-map-card.card-b .cp-map-label { color:var(--accent-orange); }
-  .cp-map-sub   { padding:0 9px 5px; font-size:9px; color:var(--text-tertiary); }
-  .cp-map-svg-wrap { padding:0 5px 5px; }
-  .cp-map-legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:5px; }
-  .cp-map-legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); }
-  .cp-ldot { width:9px; height:9px; border-radius:50%; }
-  .cp-ldot.cctv   { background:#a78bfa; border:1.5px solid #7c3aed; }
-  .cp-ldot.police { background:#64748b; border:1.5px solid white; outline:1px solid #94a3b8; }
+  /* ── 2-column grid for charts ── */
+  .cp-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .cp-grid-full { grid-column: 1 / -1; }
 
-  /* stat cards */
-  .cp-stat-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .cp-stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:11px; padding:12px 14px; }
-  .cp-stat-card.card-a { border-left:3px solid var(--accent-blue); }
-  .cp-stat-card.card-b { border-left:3px solid var(--accent-orange); }
-  .cp-stat-card h3 { font-family:'Gowun Batang',serif; font-size:14px; font-weight:700; margin-bottom:8px; }
-  .cp-stat-card.card-a h3 { color:var(--accent-blue); }
-  .cp-stat-card.card-b h3 { color:var(--accent-orange); }
-  .cp-stat-items { display:flex; flex-direction:column; gap:5px; }
-  .cp-stat-lbl { font-size:8px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:.1em; }
-  .cp-stat-val { font-family:'Gowun Batang',serif; font-size:18px; font-weight:700; line-height:1; }
-  .cp-stat-val.crime  { color:var(--accent-crime); }
-  .cp-stat-val.arrest { color:var(--accent-arrest); }
+  /* ── mini maps ── */
+  .cp-map-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cp-map-card {
+    border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden;
+    background: var(--bg-card);
+  }
+  .cp-map-card.card-a { border-color: rgba(59,130,246,.45); }
+  .cp-map-card.card-b { border-color: rgba(249,115,22,.45); }
+  .cp-map-label {
+    padding: 10px 14px 3px; font-weight: 700; font-size: 15px;
+    font-family: 'Gowun Batang', serif;
+  }
+  .cp-map-card.card-a .cp-map-label { color: var(--accent-blue); }
+  .cp-map-card.card-b .cp-map-label { color: var(--accent-orange, #f97316); }
+  .cp-map-sub { padding: 0 14px 6px; font-size: 10px; color: var(--text-tertiary); }
+  .cp-map-svg-wrap { padding: 0 8px 8px; }
+  .cp-map-legend {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-top: 6px; padding: 0 4px;
+  }
+  .cp-map-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+  .cp-ldot { width: 10px; height: 10px; border-radius: 50%; }
+  .cp-ldot.cctv   { background: #a78bfa; border: 1.5px solid #7c3aed; }
+  .cp-ldot.police { background: #64748b; border: 1.5px solid white; outline: 1px solid #94a3b8; }
 
-  /* chart blocks */
-  .cp-chart { background:var(--bg-card); border:1px solid var(--border); border-radius:11px; padding:12px; }
-  .cp-chart-title { font-family:'Gowun Batang',serif; font-size:12px; font-weight:700; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid var(--border); }
+  /* ── stat cards ── */
+  .cp-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cp-stat-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px;
+  }
+  .cp-stat-card.card-a { border-left: 4px solid var(--accent-blue); }
+  .cp-stat-card.card-b { border-left: 4px solid var(--accent-orange, #f97316); }
+  .cp-stat-card h3 {
+    font-family: 'Gowun Batang', serif; font-size: 17px;
+    font-weight: 700; margin-bottom: 12px;
+  }
+  .cp-stat-card.card-a h3 { color: var(--accent-blue); }
+  .cp-stat-card.card-b h3 { color: var(--accent-orange, #f97316); }
+  .cp-stat-items { display: flex; flex-direction: column; gap: 8px; }
+  .cp-stat-lbl { font-size: 9px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .1em; }
+  .cp-stat-val { font-family: 'Gowun Batang', serif; font-size: 24px; font-weight: 700; line-height: 1; }
+  .cp-stat-val.crime  { color: var(--accent-crime); }
+  .cp-stat-val.arrest { color: var(--accent-arrest); }
 
-  /* crime filter */
-  .cp-filter { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+  /* ── chart cards ── */
+  .cp-chart {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .cp-chart-title {
+    font-family: 'Gowun Batang', serif; font-size: 13px;
+    font-weight: 700; margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+
+  /* ── crime filter ── */
+  .cp-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .cp-filter-item {
-    display:flex; align-items:center; gap:4px; font-size:10px; cursor:pointer;
-    background:var(--bg-tertiary); border-radius:5px; padding:3px 7px;
-    border:1px solid transparent; transition:border-color .15s; user-select:none;
+    display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer;
+    background: var(--bg-tertiary); border-radius: 6px; padding: 4px 8px;
+    border: 1px solid transparent; transition: border-color .15s; user-select: none;
   }
-  .cp-filter-item:has(input:checked) { border-color:var(--border-strong); }
-  .cp-filter-item input { width:11px; height:11px; cursor:pointer; accent-color:var(--text-primary); }
-  .cp-fdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .cp-filter-item:has(input:checked) { border-color: var(--border-strong); }
+  .cp-filter-item input { width: 11px; height: 11px; cursor: pointer; accent-color: var(--text-primary); }
+  .cp-fdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
-  /* map selection */
+  /* ── map selection ── */
   .map-select-banner {
-    display:none; position:absolute; top:16px; left:50%; transform:translateX(-50%);
-    background:var(--text-primary); color:white; padding:8px 20px; border-radius:30px;
-    font-size:13px; font-weight:600; z-index:5; white-space:nowrap;
-    box-shadow:var(--shadow-md); pointer-events:none;
+    display: none; position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--text-primary); color: white; padding: 8px 20px; border-radius: 30px;
+    font-size: 13px; font-weight: 600; z-index: 5; white-space: nowrap;
+    box-shadow: var(--shadow-md); pointer-events: none;
   }
-  .map-select-banner.visible { display:block; }
-  .gu-path.compare-selected-a { stroke:var(--accent-blue)!important; stroke-width:5!important; filter:drop-shadow(0 0 6px rgba(59,130,246,.6)); }
-  .gu-path.compare-selected-b { stroke:var(--accent-orange)!important; stroke-width:5!important; filter:drop-shadow(0 0 6px rgba(249,115,22,.6)); }
+  .map-select-banner.visible { display: block; }
+  .gu-path.compare-selected-a { stroke: var(--accent-blue)!important; stroke-width: 5!important; filter: drop-shadow(0 0 6px rgba(59,130,246,.6)); }
+  .gu-path.compare-selected-b { stroke: #f97316!important; stroke-width: 5!important; filter: drop-shadow(0 0 6px rgba(249,115,22,.6)); }
 
   .compare-two-btn {
-    width:100%; padding:12px; background:var(--accent-blue); color:white;
-    border:none; border-radius:10px; font-family:'IBM Plex Sans KR',sans-serif;
-    font-size:13px; font-weight:600; cursor:pointer; transition:opacity .2s; margin-top:4px;
+    width: 100%; padding: 12px; background: var(--accent-blue); color: white;
+    border: none; border-radius: 10px; font-family: 'IBM Plex Sans KR', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .2s; margin-top: 4px;
   }
-  .compare-two-btn:hover { opacity:.85; }
-  .compare-two-btn.selecting { background:var(--accent-orange); animation:cpPulse 1.2s infinite; }
-  @keyframes cpPulse { 0%,100%{opacity:1}50%{opacity:.7} }
+  .compare-two-btn:hover { opacity: .85; }
+  .compare-two-btn.selecting { background: #f97316; animation: cpPulse 1.2s infinite; }
+  @keyframes cpPulse { 0%,100%{opacity:1} 50%{opacity:.7} }
 `;
     document.head.appendChild(s);
   }
 
   /* =========================================================
-   * 4. HTML
+   * 4. HTML — fullscreen overlay + modal card
    * ========================================================= */
   function injectHTML() {
     if (!document.getElementById('comparePanel')) {
+      const overlay = document.createElement('div');
+      overlay.className = 'cp-overlay';
+      overlay.id = 'cpOverlay';
+
       const panel = document.createElement('div');
       panel.className = 'compare-panel';
       panel.id = 'comparePanel';
       panel.innerHTML = `
         <div class="cp-header">
-          <div>
+          <div class="cp-header-left">
             <div class="cp-header-title">District Comparison</div>
             <div class="cp-header-names">
-              <div class="cp-header-name"><div class="cp-header-dot" style="background:var(--accent-blue)"></div><span id="cpNameA">—</span></div>
+              <div class="cp-header-name">
+                <div class="cp-header-dot" style="background:var(--accent-blue)"></div>
+                <span id="cpNameA">—</span>
+              </div>
               <span style="color:var(--text-tertiary)">vs</span>
-              <div class="cp-header-name"><div class="cp-header-dot" style="background:var(--accent-orange)"></div><span id="cpNameB">—</span></div>
-              <span style="color:var(--text-tertiary);font-size:10px;margin-left:3px" id="cpYear"></span>
+              <div class="cp-header-name">
+                <div class="cp-header-dot" style="background:#f97316"></div>
+                <span id="cpNameB">—</span>
+              </div>
+              <span style="color:var(--text-tertiary);font-size:11px;margin-left:4px" id="cpYear"></span>
             </div>
           </div>
           <button class="cp-close" id="comparePanelClose">✕</button>
         </div>
+
         <div class="cp-body">
+
+          <!-- 미니맵 -->
           <div>
             <div class="cp-section-label">Neighborhood Distribution</div>
             <div class="cp-map-row">
@@ -745,12 +819,13 @@
                 <div class="cp-map-svg-wrap" id="cpMapSvgB"></div>
               </div>
             </div>
-            <div class="cp-map-legend">
+            <div class="cp-map-legend" style="margin-top:10px">
               <span class="cp-map-legend-item"><span class="cp-ldot cctv"></span>CCTV Installation Ratio (circle size)</span>
               <span class="cp-map-legend-item"><span class="cp-ldot police"></span>Police Station</span>
             </div>
           </div>
 
+          <!-- 핵심 지표 -->
           <div>
             <div class="cp-section-label">Key Metrics</div>
             <div class="cp-stat-row">
@@ -759,7 +834,7 @@
                 <div class="cp-stat-items">
                   <div><div class="cp-stat-lbl">Crime Rate</div><div class="cp-stat-val crime" id="cpStatCrimeA">—</div></div>
                   <div><div class="cp-stat-lbl">Arrest Rate</div><div class="cp-stat-val arrest" id="cpStatArrestA">—</div></div>
-                  <div><div class="cp-stat-lbl">CCTV</div><div class="cp-stat-val" style="font-size:14px" id="cpStatCctvA">—</div></div>
+                  <div><div class="cp-stat-lbl">CCTV</div><div class="cp-stat-val" style="font-size:18px" id="cpStatCctvA">—</div></div>
                 </div>
               </div>
               <div class="cp-stat-card card-b">
@@ -767,46 +842,62 @@
                 <div class="cp-stat-items">
                   <div><div class="cp-stat-lbl">Crime Rate</div><div class="cp-stat-val crime" id="cpStatCrimeB">—</div></div>
                   <div><div class="cp-stat-lbl">Arrest Rate</div><div class="cp-stat-val arrest" id="cpStatArrestB">—</div></div>
-                  <div><div class="cp-stat-lbl">CCTV</div><div class="cp-stat-val" style="font-size:14px" id="cpStatCctvB">—</div></div>
+                  <div><div class="cp-stat-lbl">CCTV</div><div class="cp-stat-val" style="font-size:18px" id="cpStatCctvB">—</div></div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="cp-chart">
-            <div class="cp-chart-title">Crime Rate · Arrest Rate Comparison</div>
-            <svg id="cpBarSvg" width="100%" viewBox="0 0 440 180" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-          </div>
+          <!-- 2열 차트 그리드 -->
+          <div class="cp-grid-2">
 
-          <div class="cp-chart">
-            <div class="cp-chart-title">Five Major Crime Types — Radar</div>
-            <div class="cp-filter" id="cpFilterList">
-              <label class="cp-filter-item" data-key="murder"><input type="checkbox" checked><span class="cp-fdot" style="background:#e63946"></span>Murder</label>
-              <label class="cp-filter-item" data-key="robbery"><input type="checkbox" checked><span class="cp-fdot" style="background:#f97316"></span>Robbery</label>
-              <label class="cp-filter-item" data-key="theft"><input type="checkbox" checked><span class="cp-fdot" style="background:#eab308"></span>Theft</label>
-              <label class="cp-filter-item" data-key="violence"><input type="checkbox" checked><span class="cp-fdot" style="background:#06a77d"></span>Violence</label>
-              <label class="cp-filter-item" data-key="rape"><input type="checkbox" checked><span class="cp-fdot" style="background:#3b82f6"></span>Sexual Assault</label>
+            <!-- Crime Rate · Arrest Rate 막대 -->
+            <div class="cp-chart">
+              <div class="cp-chart-title">Crime Rate · Arrest Rate Comparison</div>
+              <svg id="cpBarSvg" width="100%" viewBox="0 0 520 220" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
             </div>
-            <svg id="cpRadarSvg" width="100%" viewBox="0 0 440 300" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-          </div>
 
-          <div class="cp-chart">
-            <div class="cp-chart-title">Incidents by Crime Type</div>
-            <svg id="cpCrimeSvg" width="100%" viewBox="0 0 440 200" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-          </div>
+            <!-- 연도별 추이 -->
+            <div class="cp-chart">
+              <div class="cp-chart-title">Crime Rate Trend by Year</div>
+              <svg id="cpTrendSvg" width="100%" viewBox="0 0 520 220" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+            </div>
 
-          <div class="cp-chart">
-            <div class="cp-chart-title">Crime Rate Trend by Year</div>
-            <svg id="cpTrendSvg" width="100%" viewBox="0 0 440 180" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-          </div>
+            <!-- 레이더 -->
+            <div class="cp-chart">
+              <div class="cp-chart-title">Five Major Crime Types — Radar</div>
+              <div class="cp-filter" id="cpFilterList">
+                <label class="cp-filter-item" data-key="murder"><input type="checkbox" checked><span class="cp-fdot" style="background:#e63946"></span>Murder</label>
+                <label class="cp-filter-item" data-key="robbery"><input type="checkbox" checked><span class="cp-fdot" style="background:#f97316"></span>Robbery</label>
+                <label class="cp-filter-item" data-key="theft"><input type="checkbox" checked><span class="cp-fdot" style="background:#eab308"></span>Theft</label>
+                <label class="cp-filter-item" data-key="violence"><input type="checkbox" checked><span class="cp-fdot" style="background:#06a77d"></span>Violence</label>
+                <label class="cp-filter-item" data-key="rape"><input type="checkbox" checked><span class="cp-fdot" style="background:#3b82f6"></span>Sexual Assault</label>
+              </div>
+              <svg id="cpRadarSvg" width="100%" viewBox="0 0 520 320" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+            </div>
 
-          <div class="cp-chart">
-            <div class="cp-chart-title">Seoul 25 Districts — Positioning</div>
-            <svg id="cpScatterSvg" width="100%" viewBox="0 0 440 280" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+            <!-- 범죄 유형별 건수 -->
+            <div class="cp-chart">
+              <div class="cp-chart-title">Incidents by Crime Type</div>
+              <svg id="cpCrimeSvg" width="100%" viewBox="0 0 520 240" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+            </div>
+
+            <!-- 산점도 — full width -->
+            <div class="cp-chart cp-grid-full">
+              <div class="cp-chart-title">Seoul 25 Districts — Positioning</div>
+              <svg id="cpScatterSvg" width="100%" viewBox="0 0 1040 300" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+            </div>
+
           </div>
         </div>`;
-      const app = document.querySelector('.app');
-      if (app) app.appendChild(panel);
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      // 오버레이 배경 클릭 시 닫기
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) closeComparePanel();
+      });
     }
 
     if (!document.getElementById('startCompareTwoBtn')) {
@@ -836,7 +927,7 @@
    * 5. PANEL OPEN / CLOSE
    * ========================================================= */
   const NS2 = 'http://www.w3.org/2000/svg';
-  const compareTwoState = { active:false, guA:null, guB:null };
+  const compareTwoState = { active: false, guA: null, guB: null };
 
   function openComparePanel(guA, guB) {
     if (!state.crimeData) return;
@@ -855,11 +946,13 @@
     document.getElementById('cpMapSubB').textContent = `Crime ${dB.crime?.toFixed(1)||'—'} · Arrest ${dB.arrest?.toFixed(1)||'—'}%`;
 
     ['A','B'].forEach(g => {
-      const gu=g==='A'?guA:guB, d=g==='A'?dA:dB, cc=g==='A'?cctvA:cctvB;
-      document.getElementById(`cpStatName${g}`).textContent  = gu;
-      document.getElementById(`cpStatCrime${g}`).textContent = d.crime?.toFixed(1)||'—';
-      document.getElementById(`cpStatArrest${g}`).textContent= (d.arrest?.toFixed(1)||'—')+'%';
-      document.getElementById(`cpStatCctv${g}`).textContent  = cc>0 ? cc.toLocaleString()+' units' : '—';
+      const gu = g==='A' ? guA : guB;
+      const d  = g==='A' ? dA  : dB;
+      const cc = g==='A' ? cctvA : cctvB;
+      document.getElementById(`cpStatName${g}`).textContent   = gu;
+      document.getElementById(`cpStatCrime${g}`).textContent  = d.crime?.toFixed(1)||'—';
+      document.getElementById(`cpStatArrest${g}`).textContent = (d.arrest?.toFixed(1)||'—')+'%';
+      document.getElementById(`cpStatCctv${g}`).textContent   = cc > 0 ? cc.toLocaleString()+' units' : '—';
     });
 
     renderCpMiniMap('cpMapSvgA', guA, 'a');
@@ -871,16 +964,19 @@
     renderCpScatterChart(guA, guB, yr);
 
     document.querySelectorAll('#cpFilterList input').forEach(cb => {
-      cb.onchange = () => { renderCpRadarChart(guA,guB,state.year); renderCpCrimeChart(guA,guB,state.year); };
+      cb.onchange = () => {
+        renderCpRadarChart(guA, guB, state.year);
+        renderCpCrimeChart(guA, guB, state.year);
+      };
     });
 
-    document.querySelector('.app').classList.add('compare-mode');
-    document.getElementById('comparePanel').classList.add('visible');
+    document.getElementById('cpOverlay').classList.add('visible');
+    document.body.style.overflow = 'hidden';
   }
 
   function closeComparePanel() {
-    document.querySelector('.app').classList.remove('compare-mode');
-    document.getElementById('comparePanel').classList.remove('visible');
+    document.getElementById('cpOverlay').classList.remove('visible');
+    document.body.style.overflow = '';
   }
 
   /* =========================================================
@@ -892,192 +988,282 @@
     if (!container || !info) return;
 
     const guPath = info.d;
-    const dongs  = (typeof DONG_DATA!=='undefined' && DONG_DATA[guName]) ? DONG_DATA[guName] : [];
+    const dongs  = (typeof DONG_DATA !== 'undefined' && DONG_DATA[guName]) ? DONG_DATA[guName] : [];
     const nums   = (guPath.match(/-?\d+\.?\d*/g)||[]).map(Number);
-    const xs=nums.filter((_,i)=>i%2===0), ys=nums.filter((_,i)=>i%2===1);
+    const xs = nums.filter((_,i)=>i%2===0), ys = nums.filter((_,i)=>i%2===1);
     const minx=Math.min(...xs), maxx=Math.max(...xs), miny=Math.min(...ys), maxy=Math.max(...ys);
-    const pad=Math.max(maxx-minx,maxy-miny)*.08;
+    const pad = Math.max(maxx-minx, maxy-miny) * .08;
     const vbX=minx-pad, vbY=miny-pad, vbW=(maxx-minx)+pad*2, vbH=(maxy-miny)+pad*2;
-    const scale=Math.max(vbW,vbH)/600;
-    const outerStroke=slot==='a'?'#3b82f6':'#f97316';
+    const scale = Math.max(vbW, vbH) / 600;
+    const outerStroke = slot==='a' ? '#3b82f6' : '#f97316';
 
-    // lat/lng → SVG viewBox coordinate helpers
     const LNG_MIN=126.76, LNG_MAX=127.19, LAT_MIN=37.42, LAT_MAX=37.70;
-    const lngToX=lng=>vbX+(lng-LNG_MIN)/(LNG_MAX-LNG_MIN)*vbW;
-    const latToY=lat=>vbY+(1-(lat-LAT_MIN)/(LAT_MAX-LAT_MIN))*vbH;
+    const lngToX = lng => vbX + (lng-LNG_MIN)/(LNG_MAX-LNG_MIN)*vbW;
+    const latToY = lat => vbY + (1-(lat-LAT_MIN)/(LAT_MAX-LAT_MIN))*vbH;
 
-    const clipId=`cpclip-${slot}-${guName.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    const clipId = `cpclip-${slot}-${guName.replace(/[^a-zA-Z0-9]/g,'_')}`;
 
-    let svg=`<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" xmlns="${NS2}" style="width:100%;height:240px;display:block" preserveAspectRatio="xMidYMid meet">`;
-    svg+=`<defs><clipPath id="${clipId}"><path d="${guPath}"/></clipPath></defs>`;
-    svg+=`<path d="${guPath}" fill="#f8fafc" stroke="${outerStroke}" stroke-width="${3.5*scale}" stroke-linejoin="round"/>`;
+    let svg = `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" xmlns="${NS2}" style="width:100%;height:300px;display:block" preserveAspectRatio="xMidYMid meet">`;
+    svg += `<defs><clipPath id="${clipId}"><path d="${guPath}"/></clipPath></defs>`;
+    svg += `<path d="${guPath}" fill="#f8fafc" stroke="${outerStroke}" stroke-width="${3.5*scale}" stroke-linejoin="round"/>`;
 
-    dongs.forEach(dong=>{
-      svg+=`<path d="${dong.d}" fill="rgba(241,243,245,.7)" stroke="#cbd2d9" stroke-width="${1.2*scale}" stroke-linejoin="round"/>`;
+    dongs.forEach(dong => {
+      svg += `<path d="${dong.d}" fill="rgba(241,243,245,.7)" stroke="#cbd2d9" stroke-width="${1.2*scale}" stroke-linejoin="round"/>`;
     });
-    svg+=`<path d="${guPath}" fill="none" stroke="${outerStroke}" stroke-width="${3.5*scale}" stroke-linejoin="round"/>`;
+    svg += `<path d="${guPath}" fill="none" stroke="${outerStroke}" stroke-width="${3.5*scale}" stroke-linejoin="round"/>`;
 
-    // CCTV bubbles
     if (state.cctvData && state.cctvData[guName]) {
-      const maxR=state.cctvMaxRatio||520;
-      dongs.forEach(dong=>{
-        const key=Object.keys(state.cctvData[guName]).find(k=>dong.name===k||(typeof normalizeDongName==='function'&&normalizeDongName(dong.name)===k));
-        const info2=key?state.cctvData[guName][key]:null;
-        if(info2&&info2.ratio>0){
-          const r=(4+(info2.ratio/maxR)*24)*scale;
-          svg+=`<circle cx="${dong.cx}" cy="${dong.cy}" r="${r}" fill="#a78bfa" fill-opacity=".32" stroke="#7c3aed" stroke-width="${1.1*scale}"><title>${dong.name} CCTV 비율: ${info2.ratio.toFixed(1)}</title></circle>`;
+      const maxR = state.cctvMaxRatio || 520;
+      dongs.forEach(dong => {
+        const key = Object.keys(state.cctvData[guName]).find(k => dong.name===k || (typeof normalizeDongName==='function' && normalizeDongName(dong.name)===k));
+        const info2 = key ? state.cctvData[guName][key] : null;
+        if (info2 && info2.ratio > 0) {
+          const r = (4 + (info2.ratio/maxR)*24) * scale;
+          svg += `<circle cx="${dong.cx}" cy="${dong.cy}" r="${r}" fill="#a78bfa" fill-opacity=".32" stroke="#7c3aed" stroke-width="${1.1*scale}"><title>${dong.name} CCTV 비율: ${info2.ratio.toFixed(1)}</title></circle>`;
         }
       });
     }
 
-    // dong labels
-    dongs.forEach(dong=>{
-      svg+=`<text x="${dong.cx}" y="${dong.cy}" text-anchor="middle" dominant-baseline="middle" font-size="${11*scale}px" font-weight="600" fill="#1e293b" style="paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:${3*scale}px">${dong.name}</text>`;
+    dongs.forEach(dong => {
+      svg += `<text x="${dong.cx}" y="${dong.cy}" text-anchor="middle" dominant-baseline="middle" font-size="${11*scale}px" font-weight="600" fill="#1e293b" style="paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:${3*scale}px">${dong.name}</text>`;
     });
 
-    // police dots
     if (state.policeData) {
-      const guShort=guName.replace('구','');
-      state.policeData.forEach(p=>{
-        if(p.address.includes(guShort)){
-          const px=lngToX(p.lng), py=latToY(p.lat);
-          svg+=`<circle cx="${px}" cy="${py}" r="${3.5*scale}" fill="#64748b" stroke="white" stroke-width="${1.5*scale}"><title>${p.name} ${p.type}</title></circle>`;
+      const guShort = guName.replace('구','');
+      state.policeData.forEach(p => {
+        if (p.address.includes(guShort)) {
+          const px = lngToX(p.lng), py = latToY(p.lat);
+          svg += `<circle cx="${px}" cy="${py}" r="${3.5*scale}" fill="#64748b" stroke="white" stroke-width="${1.5*scale}"><title>${p.name} ${p.type}</title></circle>`;
         }
       });
     }
 
-    svg+=`</svg>`;
-    container.innerHTML=svg;
+    svg += `</svg>`;
+    container.innerHTML = svg;
   }
 
   /* =========================================================
-   * 7. CHARTS
+   * 7. CHARTS — viewBox를 넓게 (520×*)
    * ========================================================= */
-  function mk(tag){return document.createElementNS(NS2,tag);}
+  function mk(tag) { return document.createElementNS(NS2, tag); }
 
-  function renderCpBarChart(guA,guB,yr){
-    const svg=document.getElementById('cpBarSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
-    const W=440,H=180,ml=46,mr=18,mt=18,mb=38,iW=W-ml-mr,iH=H-mt-mb;
-    const dA=state.crimeData[guA]?.[yr]||{},dB=state.crimeData[guB]?.[yr]||{};
-    const items=[{l:'Crime Rate',vA:dA.crime||0,vB:dB.crime||0},{l:'Arrest Rate',vA:dA.arrest||0,vB:dB.arrest||0}];
-    const maxV=Math.max(...items.map(d=>Math.max(d.vA,d.vB)),1)*1.15;
-    const step=iW/items.length,bw=step*.28;
-    [0,.25,.5,.75,1].forEach(t=>{const y=mt+iH*(1-t);const l=mk('line');l.setAttribute('x1',ml);l.setAttribute('x2',W-mr);l.setAttribute('y1',y);l.setAttribute('y2',y);l.setAttribute('stroke','#e4e7eb');l.setAttribute('stroke-width','1');svg.appendChild(l);const tx=mk('text');tx.setAttribute('x',ml-5);tx.setAttribute('y',y+4);tx.setAttribute('text-anchor','end');tx.setAttribute('font-size','9');tx.setAttribute('fill','#94a3b8');tx.textContent=(maxV*t).toFixed(1);svg.appendChild(tx);});
-    items.forEach((item,i)=>{const cx=ml+step*i+step/2;[[item.vA,'#3b82f6',guA],[item.vB,'#f97316',guB]].forEach(([v,color,name],j)=>{const bh=Math.max((v/maxV)*iH,1),bx=cx+(j===0?-bw-2:2);const r=mk('rect');r.setAttribute('x',bx);r.setAttribute('y',mt+iH-bh);r.setAttribute('width',bw);r.setAttribute('height',bh);r.setAttribute('fill',color);r.setAttribute('rx','3');r.setAttribute('fill-opacity','.85');const tt=mk('title');tt.textContent=`${name} ${item.l}: ${v.toFixed(1)}`;r.appendChild(tt);svg.appendChild(r);if(v>0){const vt=mk('text');vt.setAttribute('x',bx+bw/2);vt.setAttribute('y',mt+iH-bh-3);vt.setAttribute('text-anchor','middle');vt.setAttribute('font-size','9');vt.setAttribute('font-weight','700');vt.setAttribute('fill',color);vt.textContent=v.toFixed(1);svg.appendChild(vt);}});const xt=mk('text');xt.setAttribute('x',cx);xt.setAttribute('y',H-mb+13);xt.setAttribute('text-anchor','middle');xt.setAttribute('font-size','11');xt.setAttribute('fill','#4a5568');xt.textContent=item.l;svg.appendChild(xt);});
-    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{const lx=ml+i*180,ly=H-mb+26;const lr=mk('rect');lr.setAttribute('x',lx);lr.setAttribute('y',ly-9);lr.setAttribute('width',10);lr.setAttribute('height',10);lr.setAttribute('fill',color);lr.setAttribute('rx','2');svg.appendChild(lr);const lt=mk('text');lt.setAttribute('x',lx+13);lt.setAttribute('y',ly);lt.setAttribute('font-size','10');lt.setAttribute('fill','#4a5568');lt.setAttribute('font-weight','600');lt.textContent=name;svg.appendChild(lt);});
+  function renderCpBarChart(guA, guB, yr) {
+    const svg = document.getElementById('cpBarSvg');
+    if (!svg || !state.crimeData) return; svg.innerHTML = '';
+    const W=520, H=220, ml=50, mr=20, mt=20, mb=44, iW=W-ml-mr, iH=H-mt-mb;
+    const dA=state.crimeData[guA]?.[yr]||{}, dB=state.crimeData[guB]?.[yr]||{};
+    const items = [{l:'Crime Rate',vA:dA.crime||0,vB:dB.crime||0},{l:'Arrest Rate',vA:dA.arrest||0,vB:dB.arrest||0}];
+    const maxV = Math.max(...items.map(d=>Math.max(d.vA,d.vB)),1)*1.15;
+    const step=iW/items.length, bw=step*.28;
+    [0,.25,.5,.75,1].forEach(t=>{
+      const y=mt+iH*(1-t);
+      const l=mk('line'); l.setAttribute('x1',ml); l.setAttribute('x2',W-mr); l.setAttribute('y1',y); l.setAttribute('y2',y); l.setAttribute('stroke','#e4e7eb'); l.setAttribute('stroke-width','1'); svg.appendChild(l);
+      const tx=mk('text'); tx.setAttribute('x',ml-5); tx.setAttribute('y',y+4); tx.setAttribute('text-anchor','end'); tx.setAttribute('font-size','10'); tx.setAttribute('fill','#94a3b8'); tx.textContent=(maxV*t).toFixed(1); svg.appendChild(tx);
+    });
+    items.forEach((item,i)=>{
+      const cx=ml+step*i+step/2;
+      [[item.vA,'#3b82f6',guA],[item.vB,'#f97316',guB]].forEach(([v,color,name],j)=>{
+        const bh=Math.max((v/maxV)*iH,1), bx=cx+(j===0?-bw-2:2);
+        const r=mk('rect'); r.setAttribute('x',bx); r.setAttribute('y',mt+iH-bh); r.setAttribute('width',bw); r.setAttribute('height',bh); r.setAttribute('fill',color); r.setAttribute('rx','3'); r.setAttribute('fill-opacity','.85');
+        const tt=mk('title'); tt.textContent=`${name} ${item.l}: ${v.toFixed(1)}`; r.appendChild(tt); svg.appendChild(r);
+        if(v>0){const vt=mk('text'); vt.setAttribute('x',bx+bw/2); vt.setAttribute('y',mt+iH-bh-4); vt.setAttribute('text-anchor','middle'); vt.setAttribute('font-size','10'); vt.setAttribute('font-weight','700'); vt.setAttribute('fill',color); vt.textContent=v.toFixed(1); svg.appendChild(vt);}
+      });
+      const xt=mk('text'); xt.setAttribute('x',cx); xt.setAttribute('y',H-mb+14); xt.setAttribute('text-anchor','middle'); xt.setAttribute('font-size','12'); xt.setAttribute('fill','#4a5568'); xt.textContent=item.l; svg.appendChild(xt);
+    });
+    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{
+      const lx=ml+i*200, ly=H-mb+30;
+      const lr=mk('rect'); lr.setAttribute('x',lx); lr.setAttribute('y',ly-10); lr.setAttribute('width',11); lr.setAttribute('height',11); lr.setAttribute('fill',color); lr.setAttribute('rx','2'); svg.appendChild(lr);
+      const lt=mk('text'); lt.setAttribute('x',lx+14); lt.setAttribute('y',ly); lt.setAttribute('font-size','11'); lt.setAttribute('fill','#4a5568'); lt.setAttribute('font-weight','600'); lt.textContent=name; svg.appendChild(lt);
+    });
   }
 
-  function getActiveTypes(){return [...document.querySelectorAll('#cpFilterList input')].filter(c=>c.checked).map(c=>c.closest('[data-key]').getAttribute('data-key'));}
+  function getActiveTypes() {
+    return [...document.querySelectorAll('#cpFilterList input')].filter(c=>c.checked).map(c=>c.closest('[data-key]').getAttribute('data-key'));
+  }
 
-  function renderCpRadarChart(guA,guB,yr){
-    const svg=document.getElementById('cpRadarSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
-    const W=440,H=300,cx=W/2,cy=H/2-5,R=105;
+  function renderCpRadarChart(guA, guB, yr) {
+    const svg = document.getElementById('cpRadarSvg');
+    if (!svg || !state.crimeData) return; svg.innerHTML = '';
+    const W=520, H=320, cx=W/2, cy=H/2-5, R=120;
     const LABELS={murder:'Murder',robbery:'Robbery',theft:'Theft',violence:'Violence',rape:'Sexual Assault'};
     const COLORS={murder:'#e63946',robbery:'#f97316',theft:'#eab308',violence:'#06a77d',rape:'#3b82f6'};
-    const types=getActiveTypes(); if(!types.length){const t=mk('text');t.setAttribute('x','220');t.setAttribute('y','150');t.setAttribute('text-anchor','middle');t.setAttribute('fill','#94a3b8');t.setAttribute('font-size','13');t.textContent='범죄 유형을 선택하세요';svg.appendChild(t);return;}
-    const dA=state.crimeData[guA]?.[yr]?.occur||{},dB=state.crimeData[guB]?.[yr]?.occur||{};
-    const maxV=Math.max(...types.flatMap(k=>[dA[k]||0,dB[k]||0]),1);
-    const angle=i=>-Math.PI/2+(2*Math.PI/types.length)*i;
-    [.25,.5,.75,1].forEach(t=>{const pts=types.map((_,i)=>{const a=angle(i);return`${cx+R*t*Math.cos(a)},${cy+R*t*Math.sin(a)}`;}).join(' ');const p=mk('polygon');p.setAttribute('points',pts);p.setAttribute('fill','none');p.setAttribute('stroke','#e4e7eb');p.setAttribute('stroke-width','1');svg.appendChild(p);});
-    types.forEach((_,i)=>{const a=angle(i);const l=mk('line');l.setAttribute('x1',cx);l.setAttribute('y1',cy);l.setAttribute('x2',cx+R*Math.cos(a));l.setAttribute('y2',cy+R*Math.sin(a));l.setAttribute('stroke','#e4e7eb');l.setAttribute('stroke-width','1');svg.appendChild(l);});
-    [[guA,'#3b82f6',.5],[guB,'#f97316',.5]].forEach(([gu,color,op],gi)=>{const data=gi===0?dA:dB;const pts=types.map((k,i)=>{const v=(data[k]||0)/maxV;const a=angle(i);return`${cx+R*v*Math.cos(a)},${cy+R*v*Math.sin(a)}`;}).join(' ');const p=mk('polygon');p.setAttribute('points',pts);p.setAttribute('fill',color);p.setAttribute('fill-opacity',op);p.setAttribute('stroke',color);p.setAttribute('stroke-width','2');svg.appendChild(p);});
-    types.forEach((k,i)=>{const a=angle(i);const t=mk('text');t.setAttribute('x',cx+(R+17)*Math.cos(a));t.setAttribute('y',cy+(R+17)*Math.sin(a)+4);t.setAttribute('text-anchor','middle');t.setAttribute('font-size','11');t.setAttribute('font-weight','600');t.setAttribute('fill',COLORS[k]);t.textContent=LABELS[k];svg.appendChild(t);});
-    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{const lx=18+i*190,ly=H-12;const lr=mk('rect');lr.setAttribute('x',lx);lr.setAttribute('y',ly-9);lr.setAttribute('width',10);lr.setAttribute('height',10);lr.setAttribute('fill',color);lr.setAttribute('rx','2');svg.appendChild(lr);const lt=mk('text');lt.setAttribute('x',lx+13);lt.setAttribute('y',ly);lt.setAttribute('font-size','10');lt.setAttribute('fill','#4a5568');lt.setAttribute('font-weight','600');lt.textContent=name;svg.appendChild(lt);});
+    const types = getActiveTypes();
+    if (!types.length) {
+      const t=mk('text'); t.setAttribute('x','260'); t.setAttribute('y','160'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#94a3b8'); t.setAttribute('font-size','13'); t.textContent='범죄 유형을 선택하세요'; svg.appendChild(t); return;
+    }
+    const dA=state.crimeData[guA]?.[yr]?.occur||{}, dB=state.crimeData[guB]?.[yr]?.occur||{};
+    const maxV = Math.max(...types.flatMap(k=>[dA[k]||0,dB[k]||0]),1);
+    const angle = i => -Math.PI/2 + (2*Math.PI/types.length)*i;
+    [.25,.5,.75,1].forEach(t=>{
+      const pts=types.map((_,i)=>{const a=angle(i);return`${cx+R*t*Math.cos(a)},${cy+R*t*Math.sin(a)}`;}).join(' ');
+      const p=mk('polygon'); p.setAttribute('points',pts); p.setAttribute('fill','none'); p.setAttribute('stroke','#e4e7eb'); p.setAttribute('stroke-width','1'); svg.appendChild(p);
+    });
+    types.forEach((_,i)=>{
+      const a=angle(i);
+      const l=mk('line'); l.setAttribute('x1',cx); l.setAttribute('y1',cy); l.setAttribute('x2',cx+R*Math.cos(a)); l.setAttribute('y2',cy+R*Math.sin(a)); l.setAttribute('stroke','#e4e7eb'); l.setAttribute('stroke-width','1'); svg.appendChild(l);
+    });
+    [[guA,'#3b82f6',.5],[guB,'#f97316',.5]].forEach(([gu,color,op],gi)=>{
+      const data=gi===0?dA:dB;
+      const pts=types.map((k,i)=>{const v=(data[k]||0)/maxV;const a=angle(i);return`${cx+R*v*Math.cos(a)},${cy+R*v*Math.sin(a)}`;}).join(' ');
+      const p=mk('polygon'); p.setAttribute('points',pts); p.setAttribute('fill',color); p.setAttribute('fill-opacity',op); p.setAttribute('stroke',color); p.setAttribute('stroke-width','2'); svg.appendChild(p);
+    });
+    types.forEach((k,i)=>{
+      const a=angle(i);
+      const t=mk('text'); t.setAttribute('x',cx+(R+20)*Math.cos(a)); t.setAttribute('y',cy+(R+20)*Math.sin(a)+4); t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','12'); t.setAttribute('font-weight','600'); t.setAttribute('fill',COLORS[k]); t.textContent=LABELS[k]; svg.appendChild(t);
+    });
+    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{
+      const lx=20+i*230, ly=H-14;
+      const lr=mk('rect'); lr.setAttribute('x',lx); lr.setAttribute('y',ly-10); lr.setAttribute('width',11); lr.setAttribute('height',11); lr.setAttribute('fill',color); lr.setAttribute('rx','2'); svg.appendChild(lr);
+      const lt=mk('text'); lt.setAttribute('x',lx+14); lt.setAttribute('y',ly); lt.setAttribute('font-size','11'); lt.setAttribute('fill','#4a5568'); lt.setAttribute('font-weight','600'); lt.textContent=name; svg.appendChild(lt);
+    });
   }
 
-  function renderCpCrimeChart(guA,guB,yr){
-    const svg=document.getElementById('cpCrimeSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
-    const W=440,H=200,ml=42,mr=14,mt=16,mb=48,iW=W-ml-mr,iH=H-mt-mb;
+  function renderCpCrimeChart(guA, guB, yr) {
+    const svg = document.getElementById('cpCrimeSvg');
+    if (!svg || !state.crimeData) return; svg.innerHTML = '';
+    const W=520, H=240, ml=46, mr=16, mt=18, mb=52, iW=W-ml-mr, iH=H-mt-mb;
     const LABELS={murder:'Murder',robbery:'Robbery',theft:'Theft',violence:'Violence',rape:'Sexual Assault'};
-    const types=getActiveTypes(); if(!types.length) return;
-    const dA=state.crimeData[guA]?.[yr]?.occur||{},dB=state.crimeData[guB]?.[yr]?.occur||{};
-    const maxV=Math.max(...types.flatMap(k=>[dA[k]||0,dB[k]||0]),1)*1.15;
-    const step=iW/types.length,bw=step*.3;
-    [0,.25,.5,.75,1].forEach(t=>{const y=mt+iH*(1-t);const l=mk('line');l.setAttribute('x1',ml);l.setAttribute('x2',W-mr);l.setAttribute('y1',y);l.setAttribute('y2',y);l.setAttribute('stroke','#e4e7eb');l.setAttribute('stroke-width','1');svg.appendChild(l);const tx=mk('text');tx.setAttribute('x',ml-5);tx.setAttribute('y',y+4);tx.setAttribute('text-anchor','end');tx.setAttribute('font-size','9');tx.setAttribute('fill','#94a3b8');tx.textContent=Math.round(maxV*t/1.15);svg.appendChild(tx);});
-    types.forEach((k,i)=>{const cx2=ml+step*i+step/2;[[dA[k]||0,'#3b82f6',guA],[dB[k]||0,'#f97316',guB]].forEach(([v,color,name],j)=>{const bh=Math.max((v/maxV)*iH,1),bx=cx2+(j===0?-bw-2:2);const r=mk('rect');r.setAttribute('x',bx);r.setAttribute('y',mt+iH-bh);r.setAttribute('width',bw);r.setAttribute('height',bh);r.setAttribute('fill',color);r.setAttribute('rx','3');r.setAttribute('fill-opacity','.85');const tt=mk('title');tt.textContent=`${name} ${LABELS[k]}: ${v}건`;r.appendChild(tt);svg.appendChild(r);if(v>0){const vt=mk('text');vt.setAttribute('x',bx+bw/2);vt.setAttribute('y',mt+iH-bh-3);vt.setAttribute('text-anchor','middle');vt.setAttribute('font-size','8');vt.setAttribute('font-weight','700');vt.setAttribute('fill',color);vt.textContent=v;svg.appendChild(vt);}});const xt=mk('text');xt.setAttribute('x',cx2);xt.setAttribute('y',H-mb+13);xt.setAttribute('text-anchor','middle');xt.setAttribute('font-size','10');xt.setAttribute('fill','#4a5568');xt.textContent=LABELS[k];svg.appendChild(xt);});
-    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{const lx=ml+i*180,ly=H-mb+28;const lr=mk('rect');lr.setAttribute('x',lx);lr.setAttribute('y',ly-9);lr.setAttribute('width',10);lr.setAttribute('height',10);lr.setAttribute('fill',color);lr.setAttribute('rx','2');svg.appendChild(lr);const lt=mk('text');lt.setAttribute('x',lx+13);lt.setAttribute('y',ly);lt.setAttribute('font-size','10');lt.setAttribute('fill','#4a5568');lt.setAttribute('font-weight','600');lt.textContent=name;svg.appendChild(lt);});
+    const types = getActiveTypes();
+    if (!types.length) return;
+    const dA=state.crimeData[guA]?.[yr]?.occur||{}, dB=state.crimeData[guB]?.[yr]?.occur||{};
+    const maxV = Math.max(...types.flatMap(k=>[dA[k]||0,dB[k]||0]),1)*1.15;
+    const step=iW/types.length, bw=step*.3;
+    [0,.25,.5,.75,1].forEach(t=>{
+      const y=mt+iH*(1-t);
+      const l=mk('line'); l.setAttribute('x1',ml); l.setAttribute('x2',W-mr); l.setAttribute('y1',y); l.setAttribute('y2',y); l.setAttribute('stroke','#e4e7eb'); l.setAttribute('stroke-width','1'); svg.appendChild(l);
+      const tx=mk('text'); tx.setAttribute('x',ml-5); tx.setAttribute('y',y+4); tx.setAttribute('text-anchor','end'); tx.setAttribute('font-size','9'); tx.setAttribute('fill','#94a3b8'); tx.textContent=Math.round(maxV*t/1.15); svg.appendChild(tx);
+    });
+    types.forEach((k,i)=>{
+      const cx=ml+step*i+step/2;
+      [[dA[k]||0,'#3b82f6',guA],[dB[k]||0,'#f97316',guB]].forEach(([v,color,name],j)=>{
+        const bh=Math.max((v/maxV)*iH,1), bx=cx+(j===0?-bw-2:2);
+        const r=mk('rect'); r.setAttribute('x',bx); r.setAttribute('y',mt+iH-bh); r.setAttribute('width',bw); r.setAttribute('height',bh); r.setAttribute('fill',color); r.setAttribute('rx','3'); r.setAttribute('fill-opacity','.85');
+        const tt=mk('title'); tt.textContent=`${name} ${LABELS[k]}: ${v}건`; r.appendChild(tt); svg.appendChild(r);
+        if(v>0){const vt=mk('text'); vt.setAttribute('x',bx+bw/2); vt.setAttribute('y',mt+iH-bh-3); vt.setAttribute('text-anchor','middle'); vt.setAttribute('font-size','9'); vt.setAttribute('font-weight','700'); vt.setAttribute('fill',color); vt.textContent=v; svg.appendChild(vt);}
+      });
+      const xt=mk('text'); xt.setAttribute('x',cx); xt.setAttribute('y',H-mb+14); xt.setAttribute('text-anchor','middle'); xt.setAttribute('font-size','11'); xt.setAttribute('fill','#4a5568'); xt.textContent=LABELS[k]; svg.appendChild(xt);
+    });
+    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{
+      const lx=ml+i*210, ly=H-mb+30;
+      const lr=mk('rect'); lr.setAttribute('x',lx); lr.setAttribute('y',ly-10); lr.setAttribute('width',11); lr.setAttribute('height',11); lr.setAttribute('fill',color); lr.setAttribute('rx','2'); svg.appendChild(lr);
+      const lt=mk('text'); lt.setAttribute('x',lx+14); lt.setAttribute('y',ly); lt.setAttribute('font-size','11'); lt.setAttribute('fill','#4a5568'); lt.setAttribute('font-weight','600'); lt.textContent=name; svg.appendChild(lt);
+    });
   }
 
-  function renderCpTrendChart(guA,guB){
-    const svg=document.getElementById('cpTrendSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
-    const W=440,H=180,ml=42,mr=18,mt=16,mb=34,iW=W-ml-mr,iH=H-mt-mb;
-    const years=Object.keys(state.crimeData[guA]||{}).map(Number).sort(); if(!years.length) return;
-    const allVals=years.flatMap(y=>[state.crimeData[guA]?.[y]?.crime||0,state.crimeData[guB]?.[y]?.crime||0]);
-    const maxV=Math.max(...allVals,1)*1.15;
-    const xP=y=>ml+(y-years[0])/(years[years.length-1]-years[0]||1)*iW,yP=v=>mt+iH*(1-v/maxV);
-    [0,.25,.5,.75,1].forEach(t=>{const y=mt+iH*(1-t);const l=mk('line');l.setAttribute('x1',ml);l.setAttribute('x2',W-mr);l.setAttribute('y1',y);l.setAttribute('y2',y);l.setAttribute('stroke','#e4e7eb');l.setAttribute('stroke-width','1');svg.appendChild(l);});
-    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([gu,color])=>{const pts=years.map(y=>`${xP(y)},${yP(state.crimeData[gu]?.[y]?.crime||0)}`).join(' ');const pl=mk('polyline');pl.setAttribute('points',pts);pl.setAttribute('fill','none');pl.setAttribute('stroke',color);pl.setAttribute('stroke-width','2');pl.setAttribute('stroke-linejoin','round');svg.appendChild(pl);years.forEach(y=>{const v=state.crimeData[gu]?.[y]?.crime||0;const c=mk('circle');c.setAttribute('cx',xP(y));c.setAttribute('cy',yP(v));c.setAttribute('r','3');c.setAttribute('fill',color);c.setAttribute('stroke','white');c.setAttribute('stroke-width','1.5');const tt=mk('title');tt.textContent=`${gu} ${y}년: ${v.toFixed(1)}`;c.appendChild(tt);svg.appendChild(c);});});
-    years.forEach(y=>{const xt=mk('text');xt.setAttribute('x',xP(y));xt.setAttribute('y',H-mb+13);xt.setAttribute('text-anchor','middle');xt.setAttribute('font-size','9');xt.setAttribute('fill','#94a3b8');xt.textContent=y;svg.appendChild(xt);});
-    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{const lx=ml+i*180,ly=H-mb+26;const lr=mk('rect');lr.setAttribute('x',lx);lr.setAttribute('y',ly-9);lr.setAttribute('width',10);lr.setAttribute('height',10);lr.setAttribute('fill',color);lr.setAttribute('rx','2');svg.appendChild(lr);const lt=mk('text');lt.setAttribute('x',lx+13);lt.setAttribute('y',ly);lt.setAttribute('font-size','10');lt.setAttribute('fill','#4a5568');lt.setAttribute('font-weight','600');lt.textContent=name;svg.appendChild(lt);});
+  function renderCpTrendChart(guA, guB) {
+    const svg = document.getElementById('cpTrendSvg');
+    if (!svg || !state.crimeData) return; svg.innerHTML = '';
+    const W=520, H=220, ml=46, mr=20, mt=18, mb=38, iW=W-ml-mr, iH=H-mt-mb;
+    const years = Object.keys(state.crimeData[guA]||{}).map(Number).sort();
+    if (!years.length) return;
+    const allVals = years.flatMap(y=>[state.crimeData[guA]?.[y]?.crime||0,state.crimeData[guB]?.[y]?.crime||0]);
+    const maxV = Math.max(...allVals,1)*1.15;
+    const xP = y => ml+(y-years[0])/(years[years.length-1]-years[0]||1)*iW;
+    const yP = v => mt+iH*(1-v/maxV);
+    [0,.25,.5,.75,1].forEach(t=>{
+      const y=mt+iH*(1-t);
+      const l=mk('line'); l.setAttribute('x1',ml); l.setAttribute('x2',W-mr); l.setAttribute('y1',y); l.setAttribute('y2',y); l.setAttribute('stroke','#e4e7eb'); l.setAttribute('stroke-width','1'); svg.appendChild(l);
+      const tx=mk('text'); tx.setAttribute('x',ml-5); tx.setAttribute('y',y+4); tx.setAttribute('text-anchor','end'); tx.setAttribute('font-size','9'); tx.setAttribute('fill','#94a3b8'); tx.textContent=(maxV*t/1.15).toFixed(1); svg.appendChild(tx);
+    });
+    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([gu,color])=>{
+      const pts=years.map(y=>`${xP(y)},${yP(state.crimeData[gu]?.[y]?.crime||0)}`).join(' ');
+      const pl=mk('polyline'); pl.setAttribute('points',pts); pl.setAttribute('fill','none'); pl.setAttribute('stroke',color); pl.setAttribute('stroke-width','2.5'); pl.setAttribute('stroke-linejoin','round'); svg.appendChild(pl);
+      years.forEach(y=>{
+        const v=state.crimeData[gu]?.[y]?.crime||0;
+        const c=mk('circle'); c.setAttribute('cx',xP(y)); c.setAttribute('cy',yP(v)); c.setAttribute('r','4'); c.setAttribute('fill',color); c.setAttribute('stroke','white'); c.setAttribute('stroke-width','2');
+        const tt=mk('title'); tt.textContent=`${gu} ${y}년: ${v.toFixed(1)}`; c.appendChild(tt); svg.appendChild(c);
+      });
+    });
+    years.forEach(y=>{
+      const xt=mk('text'); xt.setAttribute('x',xP(y)); xt.setAttribute('y',H-mb+14); xt.setAttribute('text-anchor','middle'); xt.setAttribute('font-size','10'); xt.setAttribute('fill','#94a3b8'); xt.textContent=y; svg.appendChild(xt);
+    });
+    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([name,color],i)=>{
+      const lx=ml+i*210, ly=H-mb+28;
+      const lr=mk('rect'); lr.setAttribute('x',lx); lr.setAttribute('y',ly-10); lr.setAttribute('width',11); lr.setAttribute('height',11); lr.setAttribute('fill',color); lr.setAttribute('rx','2'); svg.appendChild(lr);
+      const lt=mk('text'); lt.setAttribute('x',lx+14); lt.setAttribute('y',ly); lt.setAttribute('font-size','11'); lt.setAttribute('fill','#4a5568'); lt.setAttribute('font-weight','600'); lt.textContent=name; svg.appendChild(lt);
+    });
   }
 
-  function renderCpScatterChart(guA,guB,yr){
-    const svg=document.getElementById('cpScatterSvg'); if(!svg||!state.crimeData) return; svg.innerHTML='';
-    const W=440,H=280,ml=48,mr=18,mt=18,mb=44,iW=W-ml-mr,iH=H-mt-mb;
-    const allGu=Object.keys(SEOUL_DATA.districts);
-    const pts=allGu.map(gu=>({gu,crime:state.crimeData[gu]?.[yr]?.crime||0,arrest:state.crimeData[gu]?.[yr]?.arrest||0}));
-    const maxC=Math.max(...pts.map(p=>p.crime),1)*1.1,maxA=Math.max(...pts.map(p=>p.arrest),1)*1.1;
-    const xP=v=>ml+v/maxC*iW,yP=v=>mt+iH*(1-v/maxA);
-    const ax=mk('line');ax.setAttribute('x1',ml);ax.setAttribute('x2',W-mr);ax.setAttribute('y1',mt+iH);ax.setAttribute('y2',mt+iH);ax.setAttribute('stroke','#cbd2d9');ax.setAttribute('stroke-width','1');svg.appendChild(ax);
-    const ay=mk('line');ay.setAttribute('x1',ml);ay.setAttribute('x2',ml);ay.setAttribute('y1',mt);ay.setAttribute('y2',mt+iH);ay.setAttribute('stroke','#cbd2d9');ay.setAttribute('stroke-width','1');svg.appendChild(ay);
-    pts.forEach(p=>{if(p.gu===guA||p.gu===guB) return;const cx=xP(p.crime),cy=yP(p.arrest);const c=mk('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','4');c.setAttribute('fill','#94a3b8');c.setAttribute('fill-opacity','.5');c.setAttribute('stroke','white');c.setAttribute('stroke-width','1.5');const tt=mk('title');tt.textContent=`${p.gu} — Crime:${p.crime.toFixed(1)} Arrest:${p.arrest.toFixed(1)}%`;c.appendChild(tt);svg.appendChild(c);const t=mk('text');t.setAttribute('x',cx+6);t.setAttribute('y',cy+4);t.setAttribute('font-size','8');t.setAttribute('fill','#94a3b8');t.textContent=p.gu.replace('구','');svg.appendChild(t);});
-    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([gu,color])=>{const p=pts.find(d=>d.gu===gu);if(!p) return;const cx=xP(p.crime),cy=yP(p.arrest);const glow=mk('circle');glow.setAttribute('cx',cx);glow.setAttribute('cy',cy);glow.setAttribute('r','14');glow.setAttribute('fill',color);glow.setAttribute('fill-opacity','.15');svg.appendChild(glow);const c=mk('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','7');c.setAttribute('fill',color);c.setAttribute('stroke','white');c.setAttribute('stroke-width','2');svg.appendChild(c);const t=mk('text');t.setAttribute('x',cx+11);t.setAttribute('y',cy-8);t.setAttribute('font-size','11');t.setAttribute('font-weight','700');t.setAttribute('fill',color);t.textContent=gu;svg.appendChild(t);});
-    const xl=mk('text');xl.setAttribute('x',ml+iW/2);xl.setAttribute('y',H-mb+26);xl.setAttribute('text-anchor','middle');xl.setAttribute('font-size','10');xl.setAttribute('fill','#94a3b8');xl.textContent='Crime Rate →';svg.appendChild(xl);
-    const yl=mk('text');yl.setAttribute('x',ml-30);yl.setAttribute('y',mt+iH/2);yl.setAttribute('text-anchor','middle');yl.setAttribute('font-size','10');yl.setAttribute('fill','#94a3b8');yl.setAttribute('transform',`rotate(-90,${ml-30},${mt+iH/2})`);yl.textContent='Arrest Rate →';svg.appendChild(yl);
+  function renderCpScatterChart(guA, guB, yr) {
+    const svg = document.getElementById('cpScatterSvg');
+    if (!svg || !state.crimeData) return; svg.innerHTML = '';
+    const W=1040, H=300, ml=52, mr=20, mt=20, mb=50, iW=W-ml-mr, iH=H-mt-mb;
+    const allGu = Object.keys(SEOUL_DATA.districts);
+    const pts = allGu.map(gu=>({gu, crime:state.crimeData[gu]?.[yr]?.crime||0, arrest:state.crimeData[gu]?.[yr]?.arrest||0}));
+    const maxC=Math.max(...pts.map(p=>p.crime),1)*1.1, maxA=Math.max(...pts.map(p=>p.arrest),1)*1.1;
+    const xP=v=>ml+v/maxC*iW, yP=v=>mt+iH*(1-v/maxA);
+    const ax=mk('line'); ax.setAttribute('x1',ml); ax.setAttribute('x2',W-mr); ax.setAttribute('y1',mt+iH); ax.setAttribute('y2',mt+iH); ax.setAttribute('stroke','#cbd2d9'); ax.setAttribute('stroke-width','1'); svg.appendChild(ax);
+    const ay=mk('line'); ay.setAttribute('x1',ml); ay.setAttribute('x2',ml); ay.setAttribute('y1',mt); ay.setAttribute('y2',mt+iH); ay.setAttribute('stroke','#cbd2d9'); ay.setAttribute('stroke-width','1'); svg.appendChild(ay);
+    pts.forEach(p=>{
+      if(p.gu===guA||p.gu===guB) return;
+      const cx=xP(p.crime), cy=yP(p.arrest);
+      const c=mk('circle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r','5'); c.setAttribute('fill','#94a3b8'); c.setAttribute('fill-opacity','.5'); c.setAttribute('stroke','white'); c.setAttribute('stroke-width','1.5');
+      const tt=mk('title'); tt.textContent=`${p.gu} — Crime:${p.crime.toFixed(1)} Arrest:${p.arrest.toFixed(1)}%`; c.appendChild(tt); svg.appendChild(c);
+      const t=mk('text'); t.setAttribute('x',cx+7); t.setAttribute('y',cy+4); t.setAttribute('font-size','9'); t.setAttribute('fill','#94a3b8'); t.textContent=p.gu.replace('구',''); svg.appendChild(t);
+    });
+    [[guA,'#3b82f6'],[guB,'#f97316']].forEach(([gu,color])=>{
+      const p=pts.find(d=>d.gu===gu); if(!p) return;
+      const cx=xP(p.crime), cy=yP(p.arrest);
+      const glow=mk('circle'); glow.setAttribute('cx',cx); glow.setAttribute('cy',cy); glow.setAttribute('r','18'); glow.setAttribute('fill',color); glow.setAttribute('fill-opacity','.15'); svg.appendChild(glow);
+      const c=mk('circle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r','9'); c.setAttribute('fill',color); c.setAttribute('stroke','white'); c.setAttribute('stroke-width','2'); svg.appendChild(c);
+      const t=mk('text'); t.setAttribute('x',cx+14); t.setAttribute('y',cy-10); t.setAttribute('font-size','13'); t.setAttribute('font-weight','700'); t.setAttribute('fill',color); t.textContent=gu; svg.appendChild(t);
+    });
+    const xl=mk('text'); xl.setAttribute('x',ml+iW/2); xl.setAttribute('y',H-mb+32); xl.setAttribute('text-anchor','middle'); xl.setAttribute('font-size','11'); xl.setAttribute('fill','#94a3b8'); xl.textContent='Crime Rate →'; svg.appendChild(xl);
+    const yl=mk('text'); yl.setAttribute('x',ml-34); yl.setAttribute('y',mt+iH/2); yl.setAttribute('text-anchor','middle'); yl.setAttribute('font-size','11'); yl.setAttribute('fill','#94a3b8'); yl.setAttribute('transform',`rotate(-90,${ml-34},${mt+iH/2})`); yl.textContent='Arrest Rate →'; svg.appendChild(yl);
   }
 
   /* =========================================================
    * 8. MAP INTERACTION
    * ========================================================= */
-  function toggleCompareTwoMode(){
-    compareTwoState.active=!compareTwoState.active;
-    compareTwoState.guA=null; compareTwoState.guB=null;
-    const btn=document.getElementById('startCompareTwoBtn');
-    const hint=document.getElementById('compareTwoHint');
-    const banner=document.getElementById('mapSelectBanner');
-    if(compareTwoState.active){
-      btn.textContent='✕ Cancel'; btn.classList.add('selecting');
-      hint.textContent='Click the 1st district (0/2)';
-      banner.textContent='🖱 Click 1st district (1/2)';
+  function toggleCompareTwoMode() {
+    compareTwoState.active = !compareTwoState.active;
+    compareTwoState.guA = null; compareTwoState.guB = null;
+    const btn    = document.getElementById('startCompareTwoBtn');
+    const hint   = document.getElementById('compareTwoHint');
+    const banner = document.getElementById('mapSelectBanner');
+    if (compareTwoState.active) {
+      btn.textContent = '✕ Cancel'; btn.classList.add('selecting');
+      hint.textContent = 'Click the 1st district (0/2)';
+      banner.textContent = '🖱 Click 1st district (1/2)';
       banner.classList.add('visible');
-      if(typeof closeModal==='function') closeModal();
+      if (typeof closeModal === 'function') closeModal();
     } else { resetCompareTwoMode(); }
   }
 
-  function resetCompareTwoMode(){
-    compareTwoState.active=false; compareTwoState.guA=null; compareTwoState.guB=null;
-    const btn=document.getElementById('startCompareTwoBtn');
-    btn.textContent='↔ Compare Two Districts'; btn.classList.remove('selecting');
-    document.getElementById('compareTwoHint').textContent='Click two districts on the map';
+  function resetCompareTwoMode() {
+    compareTwoState.active = false; compareTwoState.guA = null; compareTwoState.guB = null;
+    const btn = document.getElementById('startCompareTwoBtn');
+    btn.textContent = '↔ Compare Two Districts'; btn.classList.remove('selecting');
+    document.getElementById('compareTwoHint').textContent = 'Click two districts on the map';
     document.getElementById('mapSelectBanner').classList.remove('visible');
-    document.querySelectorAll('.gu-path').forEach(p=>p.classList.remove('compare-selected-a','compare-selected-b'));
+    document.querySelectorAll('.gu-path').forEach(p => p.classList.remove('compare-selected-a','compare-selected-b'));
   }
 
-  const _baseRenderMainMap=renderMainMap;
-  window.renderMainMap=function(){
+  const _baseRenderMainMap = renderMainMap;
+  window.renderMainMap = function () {
     _baseRenderMainMap();
-    if(compareTwoState.guA||compareTwoState.guB){
-      document.querySelectorAll('.gu-path').forEach(p=>{
-        const te=p.querySelector('title'); if(!te) return;
-        const gu=te.textContent.split(' · ')[0];
-        if(gu===compareTwoState.guA){p.classList.add('compare-selected-a');p.classList.remove('dimmed');}
-        else if(gu===compareTwoState.guB){p.classList.add('compare-selected-b');p.classList.remove('dimmed');}
+    if (compareTwoState.guA || compareTwoState.guB) {
+      document.querySelectorAll('.gu-path').forEach(p => {
+        const te = p.querySelector('title'); if (!te) return;
+        const gu = te.textContent.split(' · ')[0];
+        if (gu === compareTwoState.guA)      { p.classList.add('compare-selected-a'); p.classList.remove('dimmed'); }
+        else if (gu === compareTwoState.guB) { p.classList.add('compare-selected-b'); p.classList.remove('dimmed'); }
       });
     }
   };
 
-  const _baseSelectGu=selectGu;
-  window.selectGu=function(guName){
-    if(!compareTwoState.active){_baseSelectGu(guName);return;}
-    if(!compareTwoState.guA){
-      compareTwoState.guA=guName;
-      document.getElementById('compareTwoHint').textContent=`✔ ${guName} selected. Click 2nd district (1/2)`;
-      document.getElementById('mapSelectBanner').textContent='🖱 Click 2nd district (2/2)';
+  const _baseSelectGu = selectGu;
+  window.selectGu = function (guName) {
+    if (!compareTwoState.active) { _baseSelectGu(guName); return; }
+    if (!compareTwoState.guA) {
+      compareTwoState.guA = guName;
+      document.getElementById('compareTwoHint').textContent = `✔ ${guName} selected. Click 2nd district (1/2)`;
+      document.getElementById('mapSelectBanner').textContent = '🖱 Click 2nd district (2/2)';
       renderMainMap();
-    } else if(!compareTwoState.guB&&guName!==compareTwoState.guA){
-      compareTwoState.guB=guName;
+    } else if (!compareTwoState.guB && guName !== compareTwoState.guA) {
+      compareTwoState.guB = guName;
       document.getElementById('mapSelectBanner').classList.remove('visible');
-      openComparePanel(compareTwoState.guA,guName);
+      openComparePanel(compareTwoState.guA, guName);
       resetCompareTwoMode(); renderMainMap();
     }
   };
@@ -1085,18 +1271,18 @@
   /* =========================================================
    * 9. INIT
    * ========================================================= */
-  function waitForData(cb){
-    if(typeof state!=='undefined'&&state.crimeData) cb();
-    else setTimeout(()=>waitForData(cb),100);
+  function waitForData(cb) {
+    if (typeof state !== 'undefined' && state.crimeData) cb();
+    else setTimeout(() => waitForData(cb), 100);
   }
 
-  waitForData(()=>{
+  waitForData(() => {
     injectData();
     injectStyles();
     injectHTML();
-    document.getElementById('comparePanelClose').addEventListener('click',closeComparePanel);
-    document.getElementById('startCompareTwoBtn').addEventListener('click',toggleCompareTwoMode);
-    if(typeof window.renderMainMap==='function') window.renderMainMap();
+    document.getElementById('comparePanelClose').addEventListener('click', closeComparePanel);
+    document.getElementById('startCompareTwoBtn').addEventListener('click', toggleCompareTwoMode);
+    if (typeof window.renderMainMap === 'function') window.renderMainMap();
   });
 
 })();
