@@ -761,22 +761,7 @@
       </div>
     </div>
 
-    <div class="chart-section">
-      <div class="chart-header">
-        <div>
-          <h2 id="chartTitle">연도별 범죄 발생 · 검거 추이</h2>
-          <div class="subtitle">5대 범죄 유형 누적 · 위: 검거 / 아래: 발생</div>
-        </div>
-        <div class="chart-legend">
-          <div class="chart-legend-item"><span class="chart-legend-dot" style="background:#e63946"></span>살인</div>
-          <div class="chart-legend-item"><span class="chart-legend-dot" style="background:#f97316"></span>강도</div>
-          <div class="chart-legend-item"><span class="chart-legend-dot" style="background:#eab308"></span>절도</div>
-          <div class="chart-legend-item"><span class="chart-legend-dot" style="background:#06a77d"></span>폭력</div>
-          <div class="chart-legend-item"><span class="chart-legend-dot" style="background:#3b82f6"></span>강간/추행</div>
-        </div>
-      </div>
-      <svg class="chart-svg" id="chartSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320"></svg>
-    </div>
+    
   </main>
 </div>
 
@@ -1126,7 +1111,7 @@ function renderModalMap(guName) {
   svg += `</svg>`;
   document.getElementById('modalSvgContainer').innerHTML = svg;
 }
-
+// 지워도 됨?
 // 6. 하단 전체 차트 / 모달 내 상세 차트 렌더링
 const CRIME_TYPES = ['murder', 'robbery', 'theft', 'violence', 'rape'];
 const CRIME_COLORS = { murder: '#e63946', robbery: '#f97316', theft: '#eab308', violence: '#06a77d', rape: '#3b82f6' };
