@@ -1323,7 +1323,7 @@ function renderAll() {
   renderMainMap();
   renderStats();
   renderMainChart();
-  if (typeof renderMainScatter === 'function') renderMainScatter();
+  if (typeof window.renderMainScatter === 'function') window.renderMainScatter();
 }
 
 function setupEvents() {
