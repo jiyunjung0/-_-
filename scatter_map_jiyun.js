@@ -213,6 +213,12 @@
 
     const seenGu = new Set();
 
+    // reset all dot opacities before re-render (in case hover was active during year change)
+    Object.values(_dotMap).forEach(d => {
+      d.g.style.opacity = '';
+      d.lbl.style.opacity = '';
+    });
+
     points.forEach(p => {
       seenGu.add(p.gu);
       const cx = xP(p.crime), cy = yP(p.arrest);
