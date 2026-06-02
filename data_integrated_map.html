@@ -203,7 +203,63 @@
 
   .stat-value.crime { color: var(--accent-crime); }
   .stat-value.arrest { color: var(--accent-arrest); }
+/* ===== Scatter Section ===== */
+.scatter-section {
+  margin-top: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
 
+.scatter-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.scatter-section-title {
+  font-family: 'Gowun Batang', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.scatter-section-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.scatter-wrap {
+  position: relative;
+  width: 100%;
+}
+
+#mainScatterSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+#scatterTooltip {
+  position: absolute;
+  display: none;
+  background: var(--text-primary);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+  line-height: 1.6;
+}
+    
   /* ===== Main ===== */
   .main {
     padding: 40px 48px;
@@ -760,8 +816,21 @@
         </div>
       </div>
     </div>
+  </div>
 
-    
+    <!-- ===== 산점도 섹션 ===== -->
+    <div class="scatter-section">
+      <div class="scatter-section-header">
+        <div>
+          <div class="scatter-section-title">범죄율 vs 검거율 산점도</div>
+          <div class="scatter-section-sub">자치구별 범죄율(X축)과 검거율(Y축)의 관계 · 점 hover 시 지도 연동 · 클릭 시 상세보기</div>
+        </div>
+      </div>
+      <div class="scatter-wrap">
+        <svg id="mainScatterSvg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="scatterTooltip"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -1252,6 +1321,7 @@ function renderAll() {
   renderMainMap();
   renderStats();
   renderMainChart();
+  if (typeof renderMainScatter === 'function') renderMainScatter();
 }
 
 function setupEvents() {
