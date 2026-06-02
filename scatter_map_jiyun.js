@@ -182,17 +182,25 @@
   /* ── dot layer — DOM created once, position updated on re-render ── */
   const _dotMap = {}; // gu → { g, circle, glow, lbl, leaderLine }
 
-  function resetAllDots() {
-    const tooltip = document.getElementById('scatterTooltip');
-    Object.values(_dotMap).forEach(d => {
+  // tracks currently brushed districts (set by onBrushUpdate)
+  const _brushedSet = new Set();
+
+  function applyBrushedStyles() {
+    Object.entries(_dotMap).forEach(([gu, d]) => {
+      const brushed = _brushedSet.has(gu);
+      d.circle.setAttribute('r', brushed ? '9' : '7');
+      d.circle.setAttribute('fill', brushed ? '#3b82f6' : '#64748b');
+      d.circle.setAttribute('fill-opacity', brushed ? '1' : '0.65');
+      d.glow.setAttribute('fill-opacity', brushed ? '0.12' : '0');
+      d.lbl.classList.toggle('active', brushed);
       d.g.style.opacity = '';
       d.lbl.style.opacity = '';
-      d.circle.setAttribute('r', '7');
-      d.circle.setAttribute('fill', '#64748b');
-      d.circle.setAttribute('fill-opacity', '0.65');
-      d.glow.setAttribute('fill-opacity', '0');
-      d.lbl.classList.remove('active');
     });
+  }
+
+  function resetAllDots() {
+    const tooltip = document.getElementById('scatterTooltip');
+    applyBrushedStyles();
     clearMapHighlight();
     if (tooltip) tooltip.style.display = 'none';
   }
@@ -210,8 +218,8 @@
         const hitCircle = el && el.tagName === 'circle' && el.dataset.gu ? el : null;
         const newGu = hitCircle ? hitCircle.dataset.gu : null;
 
+        // update tooltip position if same dot
         if (newGu === _hoveredGu) {
-          // same dot — just update tooltip position
           if (newGu && tooltip && tooltip.style.display === 'block') {
             const wrap = svg.closest('div');
             if (wrap) {
@@ -223,40 +231,38 @@
           return;
         }
 
-        // leaving a dot
-        if (_hoveredGu) resetAllDots();
+        // un-hover previous dot (restore to base or brushed state)
+        if (_hoveredGu && _dotMap[_hoveredGu]) {
+          const prev = _dotMap[_hoveredGu];
+          const isBrushed = _brushedSet.has(_hoveredGu);
+          prev.circle.setAttribute('r', isBrushed ? '9' : '7');
+          prev.circle.setAttribute('fill', isBrushed ? '#3b82f6' : '#64748b');
+          prev.circle.setAttribute('fill-opacity', isBrushed ? '1' : '0.65');
+          prev.glow.setAttribute('fill-opacity', isBrushed ? '0.12' : '0');
+          prev.lbl.classList.toggle('active', isBrushed);
+          clearMapHighlight();
+          if (tooltip) tooltip.style.display = 'none';
+        }
 
         _hoveredGu = newGu;
-
         if (!newGu || !_dotMap[newGu]) return;
 
-        // entering a new dot
+        // hover new dot — no dimming, just highlight this one
         const { g, circle, glow, lbl } = _dotMap[newGu];
-        const p = Object.values(_dotMap).length && _dotMap[newGu];
-
         circle.setAttribute('r', '11');
         circle.setAttribute('fill', '#3b82f6');
         circle.setAttribute('fill-opacity', '1');
         glow.setAttribute('r', '22');
-        glow.setAttribute('fill-opacity', '0.18');
+        glow.setAttribute('fill-opacity', '0.22');
         lbl.classList.add('active');
         svg.appendChild(g);
         svg.appendChild(lbl);
 
-        Object.entries(_dotMap).forEach(([gu, d]) => {
-          if (gu !== newGu) {
-            d.g.style.opacity = '0.2';
-            d.lbl.style.opacity = '0.15';
-          }
-        });
-
         highlightMapGu(newGu);
 
-        // find crime/arrest values for tooltip
-        const svgEl = document.getElementById('mainScatterSvg');
         const yr = typeof state !== 'undefined' ? state.year : null;
-        const crime  = yr && state.crimeData?.[newGu]?.[yr]?.crime;
-        const arrest = yr && state.crimeData?.[newGu]?.[yr]?.arrest;
+        const crime  = yr ? state.crimeData?.[newGu]?.[yr]?.crime  : null;
+        const arrest = yr ? state.crimeData?.[newGu]?.[yr]?.arrest : null;
 
         if (tooltip) {
           tooltip.style.display = 'block';
@@ -449,42 +455,11 @@
     if (typeof window.renderMainMap === 'function') window.renderMainMap();
     renderMainScatterEnhanced();
 
-    // receive brush selection from brushing_hyewon.js
+    // receive brush selection from brushing_hyewon.js — keeps highlighted dots fixed
     window.onBrushUpdate = function(brushedGus) {
-      if (!_dotMap) return;
-
-      if (brushedGus.length === 0) {
-        // no selection — restore all
-        Object.values(_dotMap).forEach(d => {
-          d.g.style.opacity = '';
-          d.lbl.style.opacity = '';
-          d.circle.setAttribute('fill', '#64748b');
-          d.circle.setAttribute('r', '7');
-          d.glow.setAttribute('fill-opacity', '0');
-        });
-        return;
-      }
-
-      // highlight brushed, dim others
-      Object.entries(_dotMap).forEach(([gu, d]) => {
-        if (brushedGus.includes(gu)) {
-          d.g.style.opacity = '1';
-          d.lbl.style.opacity = '1';
-          d.circle.setAttribute('fill', '#3b82f6');
-          d.circle.setAttribute('fill-opacity', '1');
-          d.circle.setAttribute('r', '10');
-          d.glow.setAttribute('fill-opacity', '0.15');
-          d.lbl.classList.add('active');
-        } else {
-          d.g.style.opacity = '0.15';
-          d.lbl.style.opacity = '0.1';
-          d.circle.setAttribute('fill', '#64748b');
-          d.circle.setAttribute('fill-opacity', '0.65');
-          d.circle.setAttribute('r', '7');
-          d.glow.setAttribute('fill-opacity', '0');
-          d.lbl.classList.remove('active');
-        }
-      });
+      _brushedSet.clear();
+      brushedGus.forEach(gu => _brushedSet.add(gu));
+      applyBrushedStyles();
     };
   });
 })();
