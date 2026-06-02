@@ -384,18 +384,18 @@
     const avgC = points.reduce((a,b)=>a+b.crime, 0)  / points.length;
     const avgA = points.reduce((a,b)=>a+b.arrest, 0) / points.length;
 
-    // skip static layer redraw if scale unchanged
-    const scaleKey = `${minC}${maxC}${minA}${maxA}${avgC.toFixed(1)}${avgA.toFixed(1)}`;
-    if (!_staticRendered || scaleKey !== _lastScaleKey) {
-      // clear static elements and redraw
-      [...svg.querySelectorAll(':not(.scatter-dot-g):not(.scatter-point-label):not(.scatter-dot-g *)')].forEach(el => el.remove());
-      renderStaticLayer(svg, W, H, ml, mr, mt, mb, xP, yP, avgC, avgA, minC, maxC, minA, maxA);
-      _staticRendered = true;
-      _lastScaleKey = scaleKey;
-    }
+    // always redraw static layer (avg lines change per year)
+    [...svg.querySelectorAll(':not(.scatter-dot-g):not(.scatter-point-label):not(.scatter-dot-g *)')].forEach(el => el.remove());
+    renderStaticLayer(svg, W, H, ml, mr, mt, mb, xP, yP, avgC, avgA, minC, maxC, minA, maxA);
 
     // update dot layer (CSS transition handles animation)
     renderDotsLayer(svg, points, xP, yP, W, H, ml, mr, mt, mb);
+
+    // re-append all dots and labels on top of static layer
+    Object.values(_dotMap).forEach(d => {
+      svg.appendChild(d.g);
+      svg.appendChild(d.lbl);
+    });
   }
 
   // ---- bootstrap ----
