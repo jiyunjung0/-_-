@@ -3,8 +3,8 @@
 
 /**
  * bushing_hyewon.js
- * 부드러운 페인트브러시 방식 다중 구역 선택 플러그인
- * (0개 선택: 25개 구 듀얼 랭킹 차트 / 1개 선택: 원그래프 / 2개 이상 선택: 댄싱 막대그래프)
+ * Smooth paintbrush-style multi-district selection plugin
+ * (0 selected: 25-district dual ranking chart / 1 selected: pie chart / 2+ selected: dancing bar chart)
  */
 
 (function() {
@@ -78,7 +78,7 @@
       .legend-btn:hover { opacity: 1 !important; transform: translateY(-1px); background: var(--bg-tertiary); }
       .legend-btn.active { opacity: 1; background: var(--bg-tertiary); color: var(--text-primary); }
       
-      /* 날아오는 애니메이션 방지 */
+      /* prevent fly-in animation */
       #svgBar .tick, #svgBar rect, #svgAll .tick, #svgAll rect { transition: none !important; }
       
       @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -95,16 +95,16 @@
       <div class="chart-header" style="margin-bottom: 8px;">
         <div>
           <h2 id="comp-title" style="font-family: 'Gowun Batang', serif; font-size: 20px; font-weight: 700; margin-bottom:4px;">Safety Ranking Across Seoul’s 25 Districts</h2>
-          <div class="subtitle" id="comp-subtitle" style="font-size: 13px; color: var(--text-secondary);">Selected Districts: 없음</div>
+          <div class="subtitle" id="comp-subtitle" style="font-size: 13px; color: var(--text-secondary);">Selected Districts: None</div>
         </div>
       </div>
       
-      <!-- 0개 선택 시: 25개 구 전체 랭킹 막대그래프 -->
+      <!-- 0 selected: full 25-district ranking bar chart -->
       <div id="all-districts-wrapper">
          <svg id="svgAll" width="100%" height="280" viewBox="0 0 800 280"></svg>
       </div>
       
-      <!-- 1개 이상 선택 시: 다중 비교 차트 그리드 -->
+      <!-- 1+ selected: multi-comparison chart grid -->
       <div class="chart-grid" id="comp-grid" style="display: none;">
         <div>
           <div class="sub-chart-title">📈 Trends in Rates (Arrest Rate / Crime Rate)</div>
@@ -113,7 +113,7 @@
         </div>
         
         <div>
-          <div class="sub-chart-title" id="title-bar">📊 5대 범죄 발생 현황</div>
+          <div class="sub-chart-title" id="title-bar">📊 Five Major Crimes Overview</div>
           <div id="bar-hint" style="font-size:11px; color:var(--text-primary); margin-bottom:4px; height: 16px;"></div>
           <div id="legend-bar" class="chart-legend" style="display: flex; flex-wrap: wrap; gap: 4px; height: 26px;"></div>
           <svg id="svgBar" width="100%" height="260" viewBox="0 0 400 260"></svg>
@@ -171,6 +171,9 @@
   }
 
   function highlightMap() {
+    // forward the same selection to the scatter plot -> dragged districts stay highlighted (blue); clears on empty click
+    if (typeof window.onBrushUpdate === 'function') window.onBrushUpdate(brushedGus.slice());
+
     const paths = document.querySelectorAll('#seoulMap .gu-path');
     const labels = document.querySelectorAll('#seoulMap .gu-label');
     const guNames = Object.keys(SEOUL_DATA.districts);
@@ -224,14 +227,14 @@
     }
   }
 
-  // 📊 0개 선택 시: 25개 구 범죄율/검거율 듀얼 랭킹 차트
+  // 📊 0 selected: 25-district crime/arrest-rate dual ranking chart
   function drawAllDistrictsChart() {
     const svg = d3.select('#svgAll');
     const width = 800, height = 280;
     const margin = { top: 30, right: 40, bottom: 50, left: 40 }; 
     const year = state.year;
     
-    // 💡 사이드바에서 선택한 현재 지표 확인 (안전한 예외처리)
+    // 💡 read the metric currently selected in the sidebar (with safe fallback)
     const activeMetric = (state.metric === 'arrest' || state.indicator === 'arrest') ? 'arrest' : 'crime';
 
     const compTitle = document.getElementById('comp-title');
@@ -266,7 +269,7 @@
 
     const t = svg.transition().duration(600).ease(d3.easeCubicOut);
 
-    // 💡 왼쪽 Y축 (에러 방지: 도메인 즉시 삭제, 얌전한 렌더링)
+    // 💡 left Y axis (remove the domain path immediately for clean rendering)
     const yAxisLeft = d3.axisLeft(yScaleCrime).ticks(5).tickSize(-(width - margin.left - margin.right));
     const leftG = svg.select('.y-axis-left');
     leftG.transition(t).call(yAxisLeft);
@@ -282,14 +285,14 @@
          .text('Crime Rate(%)');
     }
 
-    // 💡 오른쪽 Y축 (에러 방지: append는 원본 G에 직접 수행)
+    // 💡 right Y axis (append directly to the original G to avoid errors)
     const yAxisRight = d3.axisRight(yScaleArrest).ticks(5).tickSize(0);
     const rightG = svg.select('.y-axis-right');
     rightG.transition(t).call(yAxisRight);
     rightG.select(".domain").remove();
     rightG.selectAll(".tick text").attr("fill", "#06a77d").attr("font-size", "10px").attr("font-weight", "600").attr("dx", "4px");
     
-    // 에러 발생의 원흉 해결! (transition 객체가 아닌 rightG 본체에 append)
+    // fix the root cause: append to the rightG element itself, not the transition object
     if(rightG.select('.right-label').empty()){
         rightG.append('text').attr('class','right-label')
          .attr('x', 0).attr('y', margin.top - 10)
@@ -298,7 +301,7 @@
          .text('Arrest Rate(%)');
     }
 
-    // 💡 X축 (얌전한 렌더링)
+    // 💡 X axis (clean rendering)
     const xAxisG = svg.select('.x-axis');
     xAxisG.transition(t).call(d3.axisBottom(xScale0).tickSizeOuter(0));
     xAxisG.select(".domain").remove();
@@ -320,7 +323,7 @@
     const allGroups = groupsEnter.merge(groups);
     allGroups.transition(t).attr('transform', d => `translate(${xScale0(d.gu)},0)`);
 
-    // 1️⃣ 빨간 막대 (범죄율)
+    // 1️⃣ red bars (crime rate)
     allGroups.selectAll('.bar-crime')
       .data(d => [d])
       .join(
@@ -345,7 +348,7 @@
       .attr('width', xScale1.bandwidth())
       .attr('height', d => Math.max(0, yScaleCrime(0) - yScaleCrime(d.crime)));
 
-    // 2️⃣ 초록 막대 (검거율)
+    // 2️⃣ green bars (arrest rate)
     allGroups.selectAll('.bar-arrest')
       .data(d => [d])
       .join(
@@ -375,7 +378,7 @@
     allGroups.selectAll('.bar-arrest').append('title').text(d => `${d.gu} Arrest Rate: ${d.arrest.toFixed(1)}%`);
   }
 
-  // 📈 좌측 (1개 이상 선택): 꺾은선 차트 
+  // 📈 left (1+ selected): line chart 
   function drawLineChart() {
     const svg = d3.select('#svgLine');
     const width = 400, height = 260; 
@@ -423,7 +426,7 @@
       svg.append('path').datum(series.values).attr('class', 'comp-line').attr('d', lineGen).attr('stroke', series.color);
       svg.selectAll('.cd-' + series.index).data(series.values).enter().append('circle')
         .attr('class', 'comp-dot').attr('cx', d => xScale(d.year)).attr('cy', d => yScale(d.value)).attr('r', 4.5).attr('fill', series.color)
-        .append('title').text(d => `비율: ${d.value.toFixed(4)}`);
+        .append('title').text(d => `Ratio: ${d.value.toFixed(4)}`);
     });
 
     document.getElementById('legend-line').innerHTML = chartData.map(s => 
@@ -431,7 +434,7 @@
     ).join('');
   }
 
-  // 📊 우측 (1개 선택 시): 원그래프
+  // 📊 right (1 selected): pie chart
   function drawPieChart() {
     const svg = d3.select('#svgBar');
     svg.selectAll('*').remove();
@@ -477,10 +480,10 @@
       .attr('stroke', 'white')
       .style('stroke-width', '2px')
       .style('cursor', 'pointer')
-      .style('outline', 'none'); // 포커스 테두리 방지
+      .style('outline', 'none'); // prevent focus outline
       
     slices.append('title')
-      .text(d => `${CRIME_LABELS[d.data.key]}: ${d.data.value}건 (${(d.data.value / total * 100).toFixed(1)}%)`);
+      .text(d => `${CRIME_LABELS[d.data.key]}: ${d.data.value} cases (${(d.data.value / total * 100).toFixed(1)}%)`);
 
     slices.transition().duration(800)
       .attrTween("d", function(d) {
@@ -503,7 +506,7 @@
       .style('text-shadow', '0px 1px 3px rgba(0,0,0,0.5)');
   }
 
-  // 📊 우측 (2개 이상 선택): Baseline Shift 댄싱 막대그래프
+  // 📊 right (2+ selected): baseline-shift dancing bar chart
   function drawStackedBarChart() {
     const svg = d3.select('#svgBar');
     
@@ -559,14 +562,14 @@
 
     const t = svg.transition().duration(600).ease(d3.easeCubicOut);
 
-    // 💡 Y축 (테두리 삭제 완벽 처리)
+    // 💡 Y axis (fully remove the border)
     const yAxisG = svg.select('.y-axis');
     yAxisG.transition(t).call(d3.axisLeft(yScale).ticks(5).tickSize(-(width - margin.left - margin.right)));
     yAxisG.select(".domain").remove();
     yAxisG.selectAll(".tick line").attr("stroke", "var(--border)").attr("stroke-dasharray", "4,4");
     yAxisG.selectAll(".tick text").attr("fill", "var(--text-secondary)").attr("x", -8).attr("font-size", "10px");
 
-    // 💡 X축 (글자 날아오지 않게 처리)
+    // 💡 X axis (prevent label fly-in)
     const xAxisG = svg.select('.x-axis');
     xAxisG.transition(t).call(d3.axisBottom(xScale).tickSizeOuter(0));
     xAxisG.select(".domain").remove();
@@ -612,7 +615,7 @@
     rects.selectAll('title').remove();
     rects.append('title').text(function(d) {
       const key = d3.select(this.parentNode).datum().key;
-      return `${d.data.gu} [${CRIME_LABELS[key]}]: ${d[1] - d[0]}건`; 
+      return `${d.data.gu} [${CRIME_LABELS[key]}]: ${d[1] - d[0]} cases`; 
     });
 
     const legendBar = document.getElementById('legend-bar');
