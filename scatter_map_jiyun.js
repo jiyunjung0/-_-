@@ -75,10 +75,17 @@
     mapSvg.querySelectorAll('.gu-label').forEach(l => l.classList.remove('scatter-hover-label'));
   }
 
+  // 이전 연도 점 위치 저장 (애니메이션용)
+  const _prevPositions = {};
+
   // enhanced scatter: same chart as the base + permanent labels + map linking
   function renderMainScatterEnhanced() {
     const svg = document.getElementById('mainScatterSvg');
     if (!svg || !state.crimeData) return;
+
+    // 현재 점 위치 스냅샷 (애니메이션 from 값으로 사용)
+    const prevSnap = Object.assign({}, _prevPositions);
+
     svg.innerHTML = '';
 
     const W = 800, H = 280;
@@ -257,6 +264,14 @@
     points.forEach(p => {
       const cx = xP(p.crime), cy = yP(p.arrest);
 
+      // 이전 위치 (없으면 현재 위치 → 첫 렌더는 제자리)
+      const prev = prevSnap[p.gu] || { cx, cy };
+      // 다음 렌더를 위해 현재 위치 저장
+      _prevPositions[p.gu] = { cx, cy };
+
+      const dur = '0.55s';
+      const ease = 'cubic-bezier(0.4,0,0.2,1)';
+
       // glow circle
       const glow = document.createElementNS(NS, 'circle');
       glow.setAttribute('cx', cx); glow.setAttribute('cy', cy);
@@ -266,11 +281,36 @@
 
       // main point
       const c = document.createElementNS(NS, 'circle');
-      c.setAttribute('cx', cx); c.setAttribute('cy', cy);
+      c.setAttribute('cx', prev.cx); c.setAttribute('cy', prev.cy);
       c.setAttribute('r', '7'); c.setAttribute('fill', '#64748b');
       c.setAttribute('fill-opacity', '0.65');
       c.setAttribute('stroke', 'white'); c.setAttribute('stroke-width', '1.5');
       c.style.cursor = 'pointer';
+
+      // cx 이동 애니메이션
+      if (prev.cx !== cx) {
+        const axAnim = document.createElementNS(NS, 'animate');
+        axAnim.setAttribute('attributeName', 'cx');
+        axAnim.setAttribute('from', prev.cx); axAnim.setAttribute('to', cx);
+        axAnim.setAttribute('dur', dur); axAnim.setAttribute('fill', 'freeze');
+        axAnim.setAttribute('calcMode', 'spline');
+        axAnim.setAttribute('keySplines', '0.4 0 0.2 1');
+        axAnim.setAttribute('keyTimes', '0;1');
+        c.appendChild(axAnim);
+      } else { c.setAttribute('cx', cx); }
+
+      // cy 이동 애니메이션
+      if (prev.cy !== cy) {
+        const ayAnim = document.createElementNS(NS, 'animate');
+        ayAnim.setAttribute('attributeName', 'cy');
+        ayAnim.setAttribute('from', prev.cy); ayAnim.setAttribute('to', cy);
+        ayAnim.setAttribute('dur', dur); ayAnim.setAttribute('fill', 'freeze');
+        ayAnim.setAttribute('calcMode', 'spline');
+        ayAnim.setAttribute('keySplines', '0.4 0 0.2 1');
+        ayAnim.setAttribute('keyTimes', '0;1');
+        c.appendChild(ayAnim);
+      } else { c.setAttribute('cy', cy); }
+
       svg.appendChild(c);
 
       // always-on district-name label, placed to avoid overlaps
