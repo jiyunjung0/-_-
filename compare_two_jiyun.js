@@ -597,40 +597,26 @@
     const s = document.createElement('style');
     s.id = 'compareTwoJiyunStyles';
     s.textContent = `
-  /* ── overlay backdrop ── */
-  .cp-overlay {
-    display: none;
-    position: fixed; inset: 0; z-index: 200;
-    background: rgba(15,23,42,.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    align-items: center; justify-content: center;
-    padding: 24px;
-    animation: cpFadeIn .22s ease;
+  /* ── app 그리드 전환 ── */
+  .app { transition: grid-template-columns .4s cubic-bezier(.4,0,.2,1); }
+  .app.compare-mode { grid-template-columns: 0px 1fr 560px !important; }
+  .app.compare-mode .sidebar {
+    opacity: 0; pointer-events: none;
+    transform: translateX(-20px);
+    transition: opacity .3s, transform .4s cubic-bezier(.4,0,.2,1);
+    width: 0; padding: 0; min-width: 0; overflow: hidden;
   }
-  .cp-overlay.visible { display: flex; }
-  @keyframes cpFadeIn { from{opacity:0} to{opacity:1} }
 
-  /* ── modal card ── */
+  /* ── 오른쪽 사이드패널 ── */
   .compare-panel {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: 0 32px 80px rgba(15,23,42,.3);
-    width: 100%; max-width: 1200px;
-    max-height: 90vh;
-    display: none;
+    display: none; width: 560px; min-width: 0;
+    background: var(--bg-secondary); border-left: 1px solid var(--border);
+    overflow-y: auto; position: sticky; top: 0; height: 100vh;
     flex-direction: column;
-    overflow: hidden;
-    transform: translateY(16px);
-    opacity: 0;
-    transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
+    opacity: 0; transform: translateX(30px);
+    transition: opacity .35s .1s, transform .4s .1s cubic-bezier(.4,0,.2,1);
   }
-  .cp-overlay.visible .compare-panel {
-    display: flex;
-    transform: translateY(0);
-    opacity: 1;
-  }
+  .compare-panel.visible { display: flex; opacity: 1; transform: translateX(0); }
 
   /* ── header ── */
   .cp-header {
@@ -775,10 +761,6 @@
    * ========================================================= */
   function injectHTML() {
     if (!document.getElementById('comparePanel')) {
-      const overlay = document.createElement('div');
-      overlay.className = 'cp-overlay';
-      overlay.id = 'cpOverlay';
-
       const panel = document.createElement('div');
       panel.className = 'compare-panel';
       panel.id = 'comparePanel';
@@ -891,13 +873,8 @@
           </div>
         </div>`;
 
-      overlay.appendChild(panel);
-      document.body.appendChild(overlay);
-
-      // 오버레이 배경 클릭 시 닫기
-      overlay.addEventListener('click', e => {
-        if (e.target === overlay) closeComparePanel();
-      });
+      const app = document.querySelector('.app');
+      if (app) app.appendChild(panel);
     }
 
     if (!document.getElementById('startCompareTwoBtn')) {
@@ -970,13 +947,13 @@
       };
     });
 
-    document.getElementById('cpOverlay').classList.add('visible');
-    document.body.style.overflow = 'hidden';
+    document.querySelector('.app').classList.add('compare-mode');
+    document.getElementById('comparePanel').classList.add('visible');
   }
 
   function closeComparePanel() {
-    document.getElementById('cpOverlay').classList.remove('visible');
-    document.body.style.overflow = '';
+    document.querySelector('.app').classList.remove('compare-mode');
+    document.getElementById('comparePanel').classList.remove('visible');
   }
 
   /* =========================================================
@@ -1190,8 +1167,11 @@
     const W=1040, H=300, ml=52, mr=20, mt=20, mb=50, iW=W-ml-mr, iH=H-mt-mb;
     const allGu = Object.keys(SEOUL_DATA.districts);
     const pts = allGu.map(gu=>({gu, crime:state.crimeData[gu]?.[yr]?.crime||0, arrest:state.crimeData[gu]?.[yr]?.arrest||0}));
-    const maxC=Math.max(...pts.map(p=>p.crime),1)*1.1, maxA=Math.max(...pts.map(p=>p.arrest),1)*1.1;
-    const xP=v=>ml+v/maxC*iW, yP=v=>mt+iH*(1-v/maxA);
+    const crimeVals=pts.map(p=>p.crime).filter(v=>v>0);
+    const arrestVals=pts.map(p=>p.arrest).filter(v=>v>0);
+    const minC=Math.min(...crimeVals)*0.92, maxC=Math.max(...crimeVals)*1.05;
+    const minA=Math.min(...arrestVals)*0.92, maxA=Math.max(...arrestVals)*1.05;
+    const xP=v=>ml+(v-minC)/(maxC-minC)*iW, yP=v=>mt+iH-(v-minA)/(maxA-minA)*iH;
     const ax=mk('line'); ax.setAttribute('x1',ml); ax.setAttribute('x2',W-mr); ax.setAttribute('y1',mt+iH); ax.setAttribute('y2',mt+iH); ax.setAttribute('stroke','#cbd2d9'); ax.setAttribute('stroke-width','1'); svg.appendChild(ax);
     const ay=mk('line'); ay.setAttribute('x1',ml); ay.setAttribute('x2',ml); ay.setAttribute('y1',mt); ay.setAttribute('y2',mt+iH); ay.setAttribute('stroke','#cbd2d9'); ay.setAttribute('stroke-width','1'); svg.appendChild(ay);
     pts.forEach(p=>{
