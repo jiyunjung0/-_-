@@ -1,48 +1,41 @@
-// 📦 5개년 TOP 5 예시 데이터 (정확한 구 이름과 점수는 수인님이 나중에 숫자로 수정하시면 됩니다!)
+// 📦 2021년~2024년 TOP 5 데이터 주머니
 const SAFETY_RANK_DATA = {
-    "2026": [
-        { rank: 1, name: "강남구", score: 95 },
-        { rank: 2, name: "송파구", score: 88 },
-        { rank: 3, name: "서초구", score: 82 },
-        { rank: 4, name: "마포구", score: 75 },
-        { rank: 5, name: "종로구", score: 70 }
-    ],
-    "2025": [
-        { rank: 1, name: "마포구", score: 91 },
-        { rank: 2, name: "성동구", score: 86 },
-        { rank: 3, name: "강남구", score: 80 },
-        { rank: 4, name: "서대문구", score: 73 },
-        { rank: 5, name: "은평구", score: 65 }
-    ],
     "2024": [
-        { rank: 1, name: "서초구", score: 93 },
-        { rank: 2, name: "송파구", score: 85 },
-        { rank: 3, name: "용산구", score: 79 },
-        { rank: 4, name: "광진구", score: 74 },
-        { rank: 5, name: "강동구", score: 68 }
+        { rank: 1, name: "성북구", score: 74.38 },
+        { rank: 2, name: "강북구", score: 73.73 },
+        { rank: 3, name: "강서구", score: 69.65 },
+        { rank: 4, name: "도봉구", score: 59.5 },
+        { rank: 5, name: "금천구", score: 57.72 }
     ],
     "2023": [
-        { rank: 1, name: "영등포구", score: 89 },
-        { rank: 2, name: "구로구", score: 84 },
-        { rank: 3, name: "동작구", score: 78 },
-        { rank: 4, name: "중구", score: 71 },
-        { rank: 5, name: "성북구", score: 66 }
+        { rank: 1, name: "성북구", score: 88.01 },
+        { rank: 2, name: "강북구", score: 79.95 },
+        { rank: 3, name: "강서구", score: 77.44 },
+        { rank: 4, name: "강동구", score: 60.52 },
+        { rank: 5, name: "은평구", score: 59.65 }
     ],
     "2022": [
-        { rank: 1, name: "노원구", score: 92 },
-        { rank: 2, name: "도봉구", score: 87 },
-        { rank: 3, name: "강북구", score: 81 },
-        { rank: 4, name: "중랑구", score: 75 },
-        { rank: 5, name: "동대문구", score: 69 }
+        { rank: 1, name: "성북구", score: 83.26 },
+        { rank: 2, name: "성동구", score: 73.94 },
+        { rank: 3, name: "은평구", score: 63.15 },
+        { rank: 4, name: "강북구", score: 62.52 },
+        { rank: 5, name: "강서구", score: 60.44 }
+    ],
+    "2021": [
+        { rank: 1, name: "강북구", score: 78.75 },
+        { rank: 2, name: "성북구", score: 73.11 },
+        { rank: 3, name: "강서구", score: 70.1 },
+        { rank: 4, name: "성동구", score: 61.8 },
+        { rank: 5, name: "은평구", score: 56.99 }
     ]
 };
 
 // 🏆 선택된 연도의 데이터를 막대그래프로 그려주는 함수
 function showTop5Chart(selectedYear) {
     const currentRankList = SAFETY_RANK_DATA[selectedYear];
-    if (!currentRankList) return;
+    if (!currentRankList) return; // 데이터가 없는 연도면 패스
 
-    // 1. 타이틀과 💡호버 툴팁(점수 계산식) 구조 만들기
+    // 1. 타이틀과 호버 툴팁(점수 계산식) 구조
     let chartHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 15px 0 10px 0;">
             <h3 style="margin: 0; color: var(--text-primary); font-size: 14px; font-weight: 700;">
@@ -53,7 +46,7 @@ function showTop5Chart(selectedYear) {
                 점수 계산식 ℹ️
                 <div class="suin-tooltip-text" style="
                     visibility: hidden;
-                    width: 200px;
+                    width: 210px;
                     background-color: #2c3e50;
                     color: #fff;
                     text-align: left;
@@ -61,7 +54,7 @@ function showTop5Chart(selectedYear) {
                     padding: 10px;
                     position: absolute;
                     z-index: 999;
-                    bottom: 125%; /* 글자 위쪽에 배치 */
+                    bottom: 125%;
                     right: 0;
                     opacity: 0;
                     transition: opacity 0.3s;
@@ -70,26 +63,28 @@ function showTop5Chart(selectedYear) {
                     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
                 ">
                     <strong>[종합 안전 점수 계산식]</strong><br>
-                    (5대 범죄 발생률 × 0.4) + (CCTV 밀도 × 0.3) + (경찰서 접근성 × 0.3)를 합산하여 100점 만점으로 환산한 결과입니다.
+                    Safety Score = (0.7 × Normalized Crime Score + 0.3 × Normalized Arrest Score) × 100
                 </div>
             </div>
         </div>
     `;
 
-    // 2. 막대그래프 팩토리
+    // 2. 막대그래프 빌드업
     chartHTML += `<div style="display: flex; flex-direction: column; gap: 12px; background: var(--bg-tertiary); padding: 15px; border-radius: 8px; border: 1.5px solid var(--border);">`;
 
     currentRankList.forEach((item) => {
         chartHTML += `
-            <div style="display: flex; align-items: center;">
+            <div style="display: flex; align-items: center; font-family: 'Malgun Gothic', sans-serif;">
                 <div style="width: 65px; font-size: 12px; font-weight: bold; color: var(--text-primary);">
                     ${item.rank}위 ${item.name}
                 </div>
-                <div style="flex-grow: 1; background: rgba(0,0,0,0.05); height: 16px; border-radius: 8px; overflow: hidden; margin: 0 8px;">
-                    <div style="width: ${item.score}%; background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; border-radius: 8px; transition: width 0.4s ease-in-out;"></div>
-                </div>
-                <div style="width: 40px; text-align: right; font-size: 12px; font-weight: bold; color: var(--text-secondary);">
-                    ${item.score}점
+                
+                <div style="flex-grow: 1; background: rgba(0,0,0,0.05); height: 20px; border-radius: 10px; overflow: hidden; margin-left: 8px; position: relative;">
+                    <div style="width: ${item.score}%; background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; border-radius: 10px; transition: width 0.4s ease-in-out; display: flex; align-items: center; justify-content: flex-end;">
+                        <span style="color: white; font-size: 10px; font-weight: bold; margin-right: 8px; white-space: nowrap;">
+                            ${item.score}점
+                        </span>
+                    </div>
                 </div>
             </div>
         `;
@@ -98,17 +93,15 @@ function showTop5Chart(selectedYear) {
     chartHTML += `</div>`;
     document.getElementById("sidebar-rank").innerHTML = chartHTML;
 
-    // 3. 💡 마우스 호버 이벤트 자바스크립트로 직접 제어하기
+    // 3. 마우스 호버 이벤트 제어
     const tooltipContainer = document.querySelector('.suin-tooltip');
     const tooltipText = document.querySelector('.suin-tooltip-text');
     
     if (tooltipContainer && tooltipText) {
-        // 마우스 올렸을 때 보이기
         tooltipContainer.addEventListener('mouseenter', () => {
             tooltipText.style.visibility = 'visible';
             tooltipText.style.opacity = '1';
         });
-        // 마우스 뗐을 때 숨기기
         tooltipContainer.addEventListener('mouseleave', () => {
             tooltipText.style.visibility = 'hidden';
             tooltipText.style.opacity = '0';
@@ -126,10 +119,11 @@ waitForData(() => {
         sidebar.appendChild(rankBlock);
     }
 
+    // ⭐ 처음 켰을 때는 데이터의 가장 최신 연도인 2024년을 기본값으로
     if (window.state && state.year) {
         showTop5Chart(state.year);
     } else {
-        showTop5Chart("2026");
+        showTop5Chart("2024");
     }
 
     const slider = document.getElementById('yearSlider');
