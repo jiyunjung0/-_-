@@ -279,12 +279,25 @@
 
         // hover events
         circle.addEventListener('mouseenter', function () {
-          circle.setAttribute('r', '10');
+          // enlarge & highlight this dot
+          circle.setAttribute('r', '11');
           circle.setAttribute('fill', '#3b82f6');
           circle.setAttribute('fill-opacity', '1');
-          glow.setAttribute('fill-opacity', '0.15');
+          glow.setAttribute('r', '22');
+          glow.setAttribute('fill-opacity', '0.18');
           lbl.classList.add('active');
+          // bring this group to front
+          svg.appendChild(g);
           svg.appendChild(lbl);
+
+          // dim all other dots
+          Object.entries(_dotMap).forEach(([gu, d]) => {
+            if (gu !== p.gu) {
+              d.g.style.opacity = '0.2';
+              d.lbl.style.opacity = '0.15';
+            }
+          });
+
           highlightMapGu(p.gu);
           if (tooltip) {
             tooltip.style.display = 'block';
@@ -300,8 +313,16 @@
           circle.setAttribute('r', '7');
           circle.setAttribute('fill', '#64748b');
           circle.setAttribute('fill-opacity', '0.65');
+          glow.setAttribute('r', '20');
           glow.setAttribute('fill-opacity', '0');
           lbl.classList.remove('active');
+
+          // restore all dots
+          Object.values(_dotMap).forEach(d => {
+            d.g.style.opacity = '';
+            d.lbl.style.opacity = '';
+          });
+
           clearMapHighlight();
           if (tooltip) tooltip.style.display = 'none';
         });
