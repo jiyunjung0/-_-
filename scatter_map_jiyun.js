@@ -21,11 +21,12 @@
     css.textContent = `
       .gu-path.scatter-hover {
         stroke: var(--accent-blue, #3b82f6) !important;
-        stroke-width: 5 !important;
-        filter: drop-shadow(0 4px 10px rgba(59,130,246,0.45)) brightness(1.02);
+        stroke-width: 4 !important;
+        vector-effect: non-scaling-stroke;   /* render stroke in screen px, not tiny viewBox units */
+        filter: drop-shadow(0 0 22px rgba(59,130,246,0.7)) brightness(1.18) saturate(1.3);
       }
-      .gu-path.scatter-dim { opacity: 0.28; }
-      .gu-label.scatter-hover-label { fill: var(--accent-blue, #3b82f6); font-weight: 700; }
+      .gu-path.scatter-dim { opacity: 0.15; }
+      .gu-label.scatter-hover-label { fill: var(--accent-blue, #3b82f6); font-weight: 800; }
 
       /* dot group — moved via CSS transition */
       .scatter-dot-g {
@@ -191,10 +192,12 @@
   function applyBrushedStyles() {
     Object.entries(_dotMap).forEach(([gu, d]) => {
       const brushed = _brushedSet.has(gu);
-      d.circle.setAttribute('r', brushed ? '9' : '7');
-      d.circle.setAttribute('fill', brushed ? '#3b82f6' : '#64748b');
+      d.circle.setAttribute('r', brushed ? '10' : '7');
+      d.circle.setAttribute('fill', brushed ? '#2563eb' : '#64748b');
       d.circle.setAttribute('fill-opacity', brushed ? '1' : '0.65');
-      d.glow.setAttribute('fill-opacity', brushed ? '0.12' : '0');
+      d.circle.setAttribute('stroke-width', brushed ? '2.2' : '1.5');
+      d.glow.setAttribute('r', brushed ? '24' : '20');
+      d.glow.setAttribute('fill-opacity', brushed ? '0.22' : '0');
       d.lbl.classList.toggle('active', brushed);
       d.g.style.opacity = '';
       d.lbl.style.opacity = '';
@@ -216,13 +219,19 @@
       const tooltip = document.getElementById('scatterTooltip');
 
       document.addEventListener('pointermove', function(e) {
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        // accept both main circle and transparent hitArea
-        const hitCircle = el && el.tagName === 'circle' && el.dataset.gu ? el : null;
-        // also check parent <g> for data-gu on circle child
-        const hitG = el && el.closest && el.closest('.scatter-dot-g');
-        const hitFromG = hitG ? hitG.querySelector('circle[data-gu]') : null;
-        const newGu = hitCircle ? hitCircle.dataset.gu : (hitFromG ? hitFromG.dataset.gu : null);
+        // among ALL dots stacked under the cursor, pick the one whose center is
+        // nearest the cursor — so a dot hidden behind another is still hoverable
+        const stack = document.elementsFromPoint(e.clientX, e.clientY);
+        let newGu = null, _bestD = Infinity;
+        for (const node of stack) {
+          const gu = node.dataset && node.dataset.gu;
+          if (!gu || !_dotMap[gu]) continue;
+          const rb = node.getBoundingClientRect();
+          const dx = e.clientX - (rb.left + rb.width / 2);
+          const dy = e.clientY - (rb.top + rb.height / 2);
+          const d2 = dx * dx + dy * dy;
+          if (d2 < _bestD) { _bestD = d2; newGu = gu; }
+        }
 
         // update tooltip position if same dot
         if (newGu === _hoveredGu) {
@@ -241,10 +250,12 @@
         if (_hoveredGu && _dotMap[_hoveredGu]) {
           const prev = _dotMap[_hoveredGu];
           const isBrushed = _brushedSet.has(_hoveredGu);
-          prev.circle.setAttribute('r', isBrushed ? '9' : '7');
-          prev.circle.setAttribute('fill', isBrushed ? '#3b82f6' : '#64748b');
+          prev.circle.setAttribute('r', isBrushed ? '10' : '7');
+          prev.circle.setAttribute('fill', isBrushed ? '#2563eb' : '#64748b');
           prev.circle.setAttribute('fill-opacity', isBrushed ? '1' : '0.65');
-          prev.glow.setAttribute('fill-opacity', isBrushed ? '0.12' : '0');
+          prev.circle.setAttribute('stroke-width', isBrushed ? '2.2' : '1.5');
+          prev.glow.setAttribute('r', isBrushed ? '24' : '20');
+          prev.glow.setAttribute('fill-opacity', isBrushed ? '0.22' : '0');
           prev.lbl.classList.toggle('active', isBrushed);
           clearMapHighlight();
           if (tooltip) tooltip.style.display = 'none';
