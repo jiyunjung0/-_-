@@ -119,7 +119,7 @@ waitForData(() => {
         sidebar.appendChild(rankBlock);
     }
 
-    // ⭐ 처음 켰을 때는 데이터의 가장 최신 연도인 2024년을 기본값으로
+    // ⭐ 처음 켰을 때는 데이터의 가장 최신 연도인 2024년을 기본값으로 띄우기
     if (window.state && state.year) {
         showTop5Chart(state.year);
     } else {
