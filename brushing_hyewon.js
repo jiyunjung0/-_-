@@ -2,7 +2,7 @@
 /* global d3, SEOUL_DATA, state */
 
 /**
- * bushing_hyewon.js
+ * brushing_hyewon.js
  * Smooth paintbrush-style multi-district selection plugin
  * (0 selected: 25-district dual ranking chart / 1 selected: pie chart / 2+ selected: dancing bar chart)
  */
