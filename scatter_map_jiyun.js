@@ -82,7 +82,7 @@
     svg.innerHTML = '';
 
     const W = 800, H = 280;
-    const ml = 64, mr = 30, mt = 20, mb = 48;
+    const ml = 44, mr = 20, mt = 20, mb = 48;
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.style.maxHeight = '280px';
     const iW = W - ml - mr, iH = H - mt - mb;
