@@ -28,10 +28,7 @@
       .gu-path.scatter-dim { opacity: 0.15; }
       .gu-label.scatter-hover-label { fill: var(--accent-blue, #3b82f6); font-weight: 800; }
 
-      /* dot group — moved via CSS transition */
-      .scatter-dot-g {
-        transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-      }
+      /* dot group — position is animated via JS rAF tween (see _runDotTween) */
       .scatter-dot-g circle.main-dot {
         transition: r 0.15s, fill 0.15s, fill-opacity 0.15s;
       }
@@ -189,6 +186,33 @@
   // currently hovered district (module-scope so a re-render can clear it → no ghost dot)
   let _hoveredGu = null;
 
+  // ---- JS rAF tween for dot position (reliable year-change animation across browsers) ----
+  let _dotAnimRAF = null;
+  function _runDotTween(list, dur) {
+    if (_dotAnimRAF) cancelAnimationFrame(_dotAnimRAF);
+    if (!list.length) return;
+    const t0 = performance.now();
+    const ease = t => 1 - Math.pow(1 - t, 3); // easeOutCubic
+    function frame(now) {
+      const k = Math.min(1, (now - t0) / dur), e = ease(k);
+      for (const it of list) {
+        const x = it.fromX + (it.toX - it.fromX) * e;
+        const y = it.fromY + (it.toY - it.fromY) * e;
+        it.g.setAttribute('transform', `translate(${x}, ${y})`);
+        const lx = it.flx + (it.tlx - it.flx) * e;
+        const ly = it.fly + (it.tly - it.fly) * e;
+        it.lbl.setAttribute('x', lx); it.lbl.setAttribute('y', ly);
+        if (it.leaderLine) {
+          it.leaderLine.setAttribute('x1', x); it.leaderLine.setAttribute('y1', y);
+          it.leaderLine.setAttribute('x2', lx); it.leaderLine.setAttribute('y2', ly - 3);
+        }
+      }
+      if (k < 1) _dotAnimRAF = requestAnimationFrame(frame);
+      else _dotAnimRAF = null;
+    }
+    _dotAnimRAF = requestAnimationFrame(frame);
+  }
+
   function applyBrushedStyles() {
     Object.entries(_dotMap).forEach(([gu, d]) => {
       const brushed = _brushedSet.has(gu);
@@ -266,11 +290,13 @@
 
         // hover new dot — no dimming, just highlight this one
         const { g, circle, glow, lbl } = _dotMap[newGu];
-        circle.setAttribute('r', '11');
+        circle.setAttribute('r', '13');
         circle.setAttribute('fill', '#3b82f6');
         circle.setAttribute('fill-opacity', '1');
-        glow.setAttribute('r', '22');
-        glow.setAttribute('fill-opacity', '0.22');
+        circle.setAttribute('stroke', 'white');
+        circle.setAttribute('stroke-width', '3');
+        glow.setAttribute('r', '28');
+        glow.setAttribute('fill-opacity', '0.3');
         lbl.classList.add('active');
         svg.appendChild(g);
         svg.appendChild(lbl);
@@ -327,6 +353,7 @@
           });
 
     const seenGu = new Set();
+    const _animList = [];   // existing dots to tween from old → new position
 
     // fully reset hover state before re-render so a hovered dot doesn't leave a ghost
     // (a dot hovered during a year change would otherwise keep its enlarged/blue look
@@ -343,23 +370,24 @@
       const lab = p._label || { tx: cx, ty: cy - 12, anchor: 'middle', leader: false };
 
       if (_dotMap[p.gu]) {
-        // existing dot: update position only — CSS transition handles animation
+        // existing dot: tween from its current position to the new one (JS rAF)
         const { g, circle, glow, lbl, leaderLine } = _dotMap[p.gu];
-
-        // move via translate (transition: transform 0.55s applies)
-        g.setAttribute('transform', `translate(${cx}, ${cy})`);
         glow.setAttribute('cx', 0); glow.setAttribute('cy', 0);
         circle.setAttribute('cx', 0); circle.setAttribute('cy', 0);
-
-        // label position (kept in absolute coords)
-        lbl.setAttribute('x', lab.tx);
-        lbl.setAttribute('y', lab.ty);
         lbl.setAttribute('text-anchor', lab.anchor);
 
-        if (leaderLine) {
-          leaderLine.setAttribute('x1', cx); leaderLine.setAttribute('y1', cy);
-          leaderLine.setAttribute('x2', lab.tx); leaderLine.setAttribute('y2', lab.ty - 3);
-        }
+        // read current (from) positions straight off the DOM
+        const tm = /translate\(\s*([-\d.]+)[ ,]+([-\d.]+)/.exec(g.getAttribute('transform') || '');
+        const fromX = tm ? parseFloat(tm[1]) : cx;
+        const fromY = tm ? parseFloat(tm[2]) : cy;
+        let flx = parseFloat(lbl.getAttribute('x')); if (isNaN(flx)) flx = lab.tx;
+        let fly = parseFloat(lbl.getAttribute('y')); if (isNaN(fly)) fly = lab.ty;
+
+        _animList.push({
+          g, lbl, leaderLine,
+          fromX, fromY, toX: cx, toY: cy,
+          flx, fly, tlx: lab.tx, tly: lab.ty,
+        });
 
       } else {
         // new dot: create DOM elements
@@ -418,6 +446,9 @@
         _dotMap[p.gu] = { g, circle, glow, lbl, leaderLine };
       }
     });
+
+    // animate all existing dots from their old positions to the new ones
+    _runDotTween(_animList, 550);
 
     // remove dots for districts no longer in data
     Object.keys(_dotMap).forEach(gu => {
