@@ -185,6 +185,9 @@
   // tracks currently brushed districts (set by onBrushUpdate)
   const _brushedSet = new Set();
 
+  // currently hovered district (module-scope so a re-render can clear it → no ghost dot)
+  let _hoveredGu = null;
+
   function applyBrushedStyles() {
     Object.entries(_dotMap).forEach(([gu, d]) => {
       const brushed = _brushedSet.has(gu);
@@ -211,7 +214,6 @@
     // document-level pointer tracking — never misses mouseleave
     if (!svg._jiyunMoveSet) {
       const tooltip = document.getElementById('scatterTooltip');
-      let _hoveredGu = null;
 
       document.addEventListener('pointermove', function(e) {
         const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -315,11 +317,14 @@
 
     const seenGu = new Set();
 
-    // reset all dot opacities before re-render (in case hover was active during year change)
-    Object.values(_dotMap).forEach(d => {
-      d.g.style.opacity = '';
-      d.lbl.style.opacity = '';
-    });
+    // fully reset hover state before re-render so a hovered dot doesn't leave a ghost
+    // (a dot hovered during a year change would otherwise keep its enlarged/blue look
+    //  and glide to the new spot via the transform transition)
+    _hoveredGu = null;
+    applyBrushedStyles();          // restore every dot to its base (or brushed) look + opacity
+    clearMapHighlight();
+    const _tt = document.getElementById('scatterTooltip');
+    if (_tt) _tt.style.display = 'none';
 
     points.forEach(p => {
       seenGu.add(p.gu);
