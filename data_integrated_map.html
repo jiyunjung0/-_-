@@ -721,6 +721,15 @@
     </div>
 
     <div class="control-block">
+  <div class="control-label"><span>위치 검색 (주소)</span></div>
+  <div style="display: flex; gap: 4px; width: 100%;">
+    <input type="text" id="addressInput" placeholder="서울시 자치구 동..." style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-family: 'IBM Plex Sans KR'; font-size: 12px; min-width: 0;">
+    <button id="addressSearchBtn" style="padding: 8px 10px; background: var(--text-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; white-space: nowrap;">Search</button>
+    <button id="resetBtn" style="padding: 8px 10px; background: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; white-space: nowrap;">Reset</button>
+  </div>
+</div>
+
+    <div class="control-block">
       <div class="control-label"><span>서울시 평균</span></div>
       <div class="stat-grid">
         <div class="stat-card">
@@ -1390,5 +1399,6 @@ loadAllData();
 <script src="compare_two_jiyun.js"></script>
 <script src="brushing_hyewon.js"></script>
 <script src="Display_top5_jei.js"></script>
+<script src="address_marker_gayoung.js"></script>
 </body>
 </html>
