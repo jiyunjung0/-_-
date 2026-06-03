@@ -143,6 +143,8 @@ function renderMainMapWithFilter() {
     text.textContent = guName;
     mapSvg.appendChild(text);
   });
+  // 주소 마커 다시 그리기
+  if (typeof renderAllMarkers === 'function') renderAllMarkers();
 }
 
 // 기존 renderMainMap을 필터 버전으로 교체

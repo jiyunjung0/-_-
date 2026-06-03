@@ -299,6 +299,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
   }
 
   .gradient-bar {
@@ -750,13 +752,14 @@
         <h1><span class="year-highlight" id="titleYear">2024</span> <span id="titleMetric">Crime rate</span> distribution</h1>
         <p>25 districts of Seoul · Click a district to see details</p>
       </div>
-      <div class="legend">
+
+      <div style="display:flex; align-items:center; gap:12px;">
         <div class="legend-gradient">
-          <span>Low</span>
+          <span>낮음</span>
           <div class="gradient-bar crime" id="gradientBar"></div>
-          <span>High</span>
+          <span>높음</span>
         </div>
-      </div>
+      </div>         
     </div>
 
     <div class="map-area">
@@ -1008,11 +1011,13 @@ async function loadAllData() {
 function getColor(value, metric) {
   let intensity = 0;
   if (metric === 'crime') {
-    intensity = Math.min(1, Math.max(0, value / 1500)); // 범죄율 기준 (조정 가능)
+    intensity = Math.min(1, Math.max(0, value / 1500));
     return `rgba(230, 57, 70, ${0.15 + intensity * 0.85})`;
   } else {
-    intensity = Math.min(1, Math.max(0, value / 100)); // 검거율 기준 (최대 100%)
-    return `rgba(6, 167, 125, ${0.15 + intensity * 0.85})`;
+    // 검거율 실제 범위(60~100%) 기준으로 정규화해서 차이를 극대화
+    const minArrest = 63, maxArrest = 90;
+    intensity = Math.min(1, Math.max(0, (value - minArrest) / (maxArrest - minArrest)));
+    return `rgba(6, 167, 125, ${0.05 + intensity * 0.95})`;
   }
 }
 
@@ -1062,6 +1067,8 @@ function renderMainMap() {
     text.textContent = guName;
     mapSvg.appendChild(text);
   });
+  // 주소 마커 다시 그리기
+  if (typeof renderAllMarkers === 'function') renderAllMarkers();
 }
 
 // 4. 사이드바 통계 업데이트
@@ -1084,6 +1091,39 @@ function renderStats() {
   document.getElementById('titleYear').textContent = state.year;
   document.getElementById('titleMetric').textContent = state.metric === 'crime' ? 'Crime rate' : 'Arrest rate';
   document.getElementById('gradientBar').className = `gradient-bar ${state.metric}`;
+
+  // 범례 최솟값/최댓값 계산
+  if (state.crimeData) {
+    const vals = Object.keys(SEOUL_DATA.districts)
+      .filter(gu => state.crimeData[gu]?.[state.year])
+      .map(gu => state.metric === 'crime'
+        ? state.crimeData[gu][state.year].crime
+        : state.crimeData[gu][state.year].arrest);
+
+    const minVal = Math.min(...vals);
+    const maxVal = Math.max(...vals);
+
+    document.getElementById('legendMin').textContent =
+      state.metric === 'crime' ? minVal.toFixed(1) : minVal.toFixed(1) + '%';
+    document.getElementById('legendMax').textContent =
+      state.metric === 'crime' ? maxVal.toFixed(1) : maxVal.toFixed(1) + '%';
+  }
+  // 툴팁 내용 지표에 따라 변경
+  document.getElementById('legendTooltipTitle').textContent =
+    state.metric === 'crime' ? '[범죄율 계산식]' : '[검거율 계산식]';
+  document.getElementById('legendTooltipBody').innerHTML =
+    state.metric === 'crime'
+      ? '범죄율 = (발생건수 / 자치구 인구) × 100,000<br>단위: 10만명당 발생건수'
+      : '검거율 = (검거건수 / 발생건수) × 100<br>단위: %';
+
+  // 호버 이벤트 (한 번만 등록)
+  const tw = document.getElementById('legendTooltipWrap');
+  const tt = document.getElementById('legendTooltipText');
+  if (tw && !tw._hoverBound) {
+    tw.addEventListener('mouseenter', () => { tt.style.visibility='visible'; tt.style.opacity='1'; });
+    tw.addEventListener('mouseleave', () => { tt.style.visibility='hidden'; tt.style.opacity='0'; });
+    tw._hoverBound = true;
+  }
 }
 
 // 5. 모달 오픈 및 상세 지도 그리기

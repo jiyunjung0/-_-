@@ -1,3 +1,5 @@
+const savedMarkers = [];
+
 // Get search button and input field elements
 const searchBtn = document.getElementById('addressSearchBtn');
 const addressInput = document.getElementById('addressInput');
@@ -27,6 +29,7 @@ const resetBtn = document.getElementById('resetBtn');
 
 // Add event listener for the reset button
 resetBtn.addEventListener('click', () => {
+    savedMarkers.length = 0; // 배열 비우기
     // Select all marker groups and remove them all at once
     d3.selectAll('.address-marker-group').remove();
     console.log("All markers have been removed.");
@@ -72,46 +75,40 @@ function geocodeAndMarkWithVworld(address) {
     document.body.appendChild(script);
 }
 
-// 2. Function to draw a marker on the SVG map using the converted coordinates
 function drawMarkerOnMap(lng, lat, addressName) {
-    // Convert coordinates to screen (pixel) coordinates using scaleX, scaleY defined in HTML
+  savedMarkers.push({ lng, lat, addressName });
+  renderAllMarkers();
+}
+
+function renderAllMarkers() {
+  d3.selectAll('.address-marker-group').remove();
+  const mapSvg = d3.select('#seoulMap');
+
+  savedMarkers.forEach(({ lng, lat, addressName }) => {
     const x = scaleX(lng);
     const y = scaleY(lat);
 
-    const mapSvg = d3.select('#seoulMap');
-
-    // Create a group (<g>) for the marker and text to handle them together
     const markerGroup = mapSvg.append('g')
-        .attr('class', 'address-marker-group')
-        .style('cursor', 'pointer') // Change cursor to pointer to indicate it's clickable
-        .on('click', function() {
-            // Remove this specific group when clicked
-            d3.select(this).remove();
-        });
+      .attr('class', 'address-marker-group')
+      .style('cursor', 'pointer')
+      .on('click', function() {
+        const idx = savedMarkers.findIndex(m => m.lng === lng && m.lat === lat);
+        if (idx !== -1) savedMarkers.splice(idx, 1);
+        d3.select(this).remove();
+      });
 
-// Add a marker (circle) inside the group
     markerGroup.append('circle')
-        .attr('cx', x)
-        .attr('cy', y)
-        .attr('r', 12) // Radius increased from 8 to 12
-        .attr('fill', '#3b82f6')
-        .attr('stroke', '#ffffff')
-        .attr('stroke-width', 3) // Increased stroke width for better visibility
-        .style('filter', 'drop-shadow(0px 2px 4px rgba(0,0,0,0.3))');
+      .attr('cx', x).attr('cy', y).attr('r', 12)
+      .attr('fill', '#3b82f6').attr('stroke', '#ffffff').attr('stroke-width', 3)
+      .style('filter', 'drop-shadow(0px 2px 4px rgba(0,0,0,0.3))');
 
-    // Add the address text inside the group
     markerGroup.append('text')
-        .attr('x', x)
-        .attr('y', y - 18) // Adjusted position slightly higher (y - 18) to match the larger marker
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '22px') // Font size increased from 16px to 22px
-        .attr('font-weight', '700')
-        .attr('fill', '#1a202c')
-        .style('paint-order', 'stroke')
-        .style('stroke', 'rgba(255, 255, 255, 0.9)')
-        .style('stroke-width', '4px') // Thicker outline for better readability
-        .text(addressName);
-        
-    // Reset the input field after successful search for convenience
-    document.getElementById('addressInput').value = '';
+      .attr('x', x).attr('y', y - 18)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '22px').attr('font-weight', '700').attr('fill', '#1a202c')
+      .style('paint-order', 'stroke')
+      .style('stroke', 'rgba(255, 255, 255, 0.9)').style('stroke-width', '4px')
+      .text(addressName);
+  });
+
 }
