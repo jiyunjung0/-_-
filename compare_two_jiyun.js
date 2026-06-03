@@ -458,38 +458,18 @@
             </div>
           </div>
 
-          <div class="two-chart-section">
-            <h3>Crime Rate & Arrest Rate Bar Comparison</h3>
-            <div class="two-chart-row">
-              <svg id="twoBarSvg" width="100%" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-              <svg id="twoArrestBarSvg" width="100%" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-            </div>
-          </div>
 
-          <div class="two-chart-section">
-            <h3>Five Major Crime Types — Radar Analysis</h3>
-            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:12px;">Larger shaded area indicates higher frequency of that crime type.</div>
-            <div class="two-chart-row" style="align-items:center;">
-              <svg id="twoRadarSvg" width="100%" viewBox="0 0 500 420" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-              <div class="crime-filter-panel">
-                <div class="crime-filter-title">Select crime types to compare</div>
-                <div class="crime-filter-list" id="crimeFilterList">
-                  <label class="crime-filter-item" data-key="murder"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#e63946"></span> Murder</label>
-                  <label class="crime-filter-item" data-key="robbery"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#f97316"></span> Robbery</label>
-                  <label class="crime-filter-item" data-key="theft"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#eab308"></span> Theft</label>
-                  <label class="crime-filter-item" data-key="violence"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#06a77d"></span> Violence</label>
-                  <label class="crime-filter-item" data-key="rape"><input type="checkbox" checked> <span class="crime-filter-dot" style="background:#3b82f6"></span> Sexual Assault</label>
-                </div>
-                <div class="crime-filter-hint" style="font-size:11px;color:var(--text-tertiary);margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">Only checked crime types appear in the radar and bar charts.</div>
-              </div>
-            </div>
-          </div>
 
           <div class="two-chart-section">
             <h3>Incident Count by Crime Type</h3>
             <svg id="twoCrimeSvg" width="100%" viewBox="0 0 800 260" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
           </div>
 
+          <div class="two-chart-section">
+            <h3>Crime Rate Trend by Year</h3>
+            <svg id="twoTrendSvg" width="100%" viewBox="0 0 800 240" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+          </div>
+          
           <div class="two-chart-section">
             <h3>Seoul 25 Districts — Scatter Positioning <span style="font-size:13px;font-weight:400;color:var(--text-tertiary)">— x: crime rate, y: arrest rate</span></h3>
             <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:10px;">See where the two selected districts stand among all 25 Seoul districts.</div>
@@ -502,25 +482,19 @@
             <svg id="twoScatterSvg" width="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet" style="display:block;border:1px solid var(--border);border-radius:12px;background:var(--bg-card);"></svg>
           </div>
 
-          <div class="two-chart-section">
-            <h3>Crime Rate Trend by Year</h3>
-            <svg id="twoTrendSvg" width="100%" viewBox="0 0 800 240" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
-          </div>
+          
         </div>
       `;
 
       renderMiniMap2('twoMapSvgA', guA, 'a');
       renderMiniMap2('twoMapSvgB', guB, 'b');
-      renderTwoBarChart2(guA, guB, yr);
-      renderTwoScatterChart(guA, guB, yr);
-      renderTwoRadarChart(guA, guB, yr);
       renderTwoCrimeChart2(guA, guB, yr);
       renderTwoTrendChart2(guA, guB);
+      renderTwoScatterChart(guA, guB, yr);
 
       // wire up filter events
       document.querySelectorAll('#crimeFilterList input[type=checkbox]').forEach(cb => {
         cb.onchange = () => {
-          renderTwoRadarChart(guA, guB, state.year);
           renderTwoCrimeChart2(guA, guB, state.year);
         };
       });
@@ -874,24 +848,7 @@
     });
   }
 
-  function renderTwoBarChart2(guA, guB, yr) {
-    const dA=state.crimeData[guA]?.[yr]||{}, dB=state.crimeData[guB]?.[yr]||{};
-    [[document.getElementById('twoBarSvg'), [dA.crime||0, dB.crime||0], 'Crime Rate (per 100k)'],
-     [document.getElementById('twoArrestBarSvg'), [dA.arrest||0, dB.arrest||0], 'Arrest Rate (%)']].forEach(([svg, vals, title])=>{
-      if(!svg) return; svg.innerHTML='';
-      const W=420, H=220, ml=20, mr=20, mt=44, mb=36, iW=W-ml-mr, iH=H-mt-mb;
-      const maxV=Math.max(...vals,1), barW=iW/2-24, colors=['#3b82f6','#f97316'], names=[guA,guB];
-      
-      const tit=document.createElementNS(NS2,'text'); tit.setAttribute('x',W/2);tit.setAttribute('y',20);tit.setAttribute('text-anchor','middle');tit.setAttribute('font-size','14');tit.setAttribute('font-weight','700');tit.textContent=title; svg.appendChild(tit);
-      
-      vals.forEach((v,i)=>{
-        const bx=ml+i*(barW+24), bh=Math.max((v/maxV)*iH,2), by=mt+iH-bh;
-        const r=document.createElementNS(NS2,'rect'); r.setAttribute('x',bx);r.setAttribute('y',by);r.setAttribute('width',barW);r.setAttribute('height',bh);r.setAttribute('fill',colors[i]);r.setAttribute('rx','6'); svg.appendChild(r);
-        const vt=document.createElementNS(NS2,'text'); vt.setAttribute('x',bx+barW/2);vt.setAttribute('y',by-8);vt.setAttribute('text-anchor','middle');vt.setAttribute('font-size','15');vt.setAttribute('font-weight','700');vt.setAttribute('fill',colors[i]);vt.textContent=v.toFixed(1); svg.appendChild(vt);
-        const nt=document.createElementNS(NS2,'text'); nt.setAttribute('x',bx+barW/2);nt.setAttribute('y',mt+iH+20);nt.setAttribute('text-anchor','middle');nt.setAttribute('font-size','13');nt.setAttribute('font-weight','600');nt.setAttribute('fill','#475569');nt.textContent=names[i]; svg.appendChild(nt);
-      });
-    });
-  }
+  
 
   function renderTwoCrimeChart2(guA, guB, yr) {
     const svg = document.getElementById('twoCrimeSvg');
