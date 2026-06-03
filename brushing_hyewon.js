@@ -143,10 +143,14 @@
       }
     });
 
+    // 💡 마우스 움직일 때 (픽셀 단위로 마우스 아래 요소를 추적하여 삑사리 완벽 방지)
     mapSvg.addEventListener('pointermove', (e) => {
       if (!isPainting || isJiyunMode()) return;
       isDragged = true; 
-      const path = e.target.closest('.gu-path');
+      
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const path = el ? el.closest('.gu-path') : null;
+      
       if (path) {
         const gu = getGuNameFromPath(path);
         if (gu && !brushedGus.includes(gu)) {
@@ -163,20 +167,27 @@
     });
   }
 
+  // 💡 Index(순서)에 의존하지 않고, 태그에 적힌 진짜 이름을 직접 읽어오도록 개선
   function getGuNameFromPath(path) {
+    const titleEl = path.querySelector('title');
+    if (titleEl) {
+      return titleEl.textContent.split(' · ')[0].trim();
+    }
+    
+    // Fallback (만약 title 태그가 없을 경우를 대비한 기존 로직 유지)
     const paths = Array.from(document.querySelectorAll('#seoulMap .gu-path'));
     const idx = paths.indexOf(path);
     if (idx > -1 && typeof SEOUL_DATA !== 'undefined') return Object.keys(SEOUL_DATA.districts)[idx];
+    
     return null;
   }
 
+  // 💡 하이라이트 함수도 실제 이름을 기반으로 색칠하도록 개선
   function highlightMap() {
-    // forward the same selection to the scatter plot -> dragged districts stay highlighted (blue); clears on empty click
     if (typeof window.onBrushUpdate === 'function') window.onBrushUpdate(brushedGus.slice());
 
     const paths = document.querySelectorAll('#seoulMap .gu-path');
     const labels = document.querySelectorAll('#seoulMap .gu-label');
-    const guNames = Object.keys(SEOUL_DATA.districts);
 
     if (brushedGus.length === 0) {
       paths.forEach(p => p.setAttribute('class', 'gu-path'));
@@ -184,13 +195,18 @@
       return;
     }
 
-    paths.forEach((path, i) => {
-      const gu = guNames[i];
-      path.setAttribute('class', brushedGus.includes(gu) ? 'gu-path selected' : 'gu-path dimmed');
+    paths.forEach(path => {
+      const gu = getGuNameFromPath(path);
+      if (gu) {
+        path.setAttribute('class', brushedGus.includes(gu) ? 'gu-path selected' : 'gu-path dimmed');
+      }
     });
-    labels.forEach((label, i) => {
-      const gu = guNames[i];
-      label.setAttribute('class', brushedGus.includes(gu) ? 'gu-label' : 'gu-label dim');
+    
+    labels.forEach(label => {
+      const gu = label.textContent.trim();
+      if (gu) {
+        label.setAttribute('class', brushedGus.includes(gu) ? 'gu-label' : 'gu-label dim');
+      }
     });
   }
 
