@@ -697,13 +697,13 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">SEOUL</div>
-      <div class="brand-title">서울특별시<br>범죄 통계</div>
+      <div class="brand-title">Seoul<br>Crime Statistics</div>
       <div class="brand-subtitle">Crime Statistics Dashboard</div>
     </div>
 
     <div class="control-block">
       <div class="control-label">
-        <span>연도</span>
+        <span>Year</span>
         <span class="control-label-value" id="yearDisplay">2024</span>
       </div>
       <input type="range" id="yearSlider" class="year-slider" min="2021" max="2024" value="2024" step="1">
@@ -713,15 +713,15 @@
     </div>
 
     <div class="control-block">
-      <div class="control-label"><span>지표</span></div>
+      <div class="control-label"><span>Metric</span></div>
       <div class="metric-toggle" id="metricToggle">
-        <button class="active" data-metric="crime">범죄율</button>
-        <button data-metric="arrest">검거율</button>
+        <button class="active" data-metric="crime">Crime rate</button>
+        <button data-metric="arrest">Arrest rate</button>
       </div>
     </div>
 
     <div class="control-block">
-  <div class="control-label"><span>위치 검색 (주소)</span></div>
+  <div class="control-label"><span>Location search (address)</span></div>
   <div style="display: flex; gap: 4px; width: 100%;">
     <input type="text" id="addressInput" placeholder="서울시 자치구 동..." style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-family: 'IBM Plex Sans KR'; font-size: 12px; min-width: 0;">
     <button id="addressSearchBtn" style="padding: 8px 10px; background: var(--text-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; white-space: nowrap;">Search</button>
@@ -730,14 +730,14 @@
 </div>
 
     <div class="control-block">
-      <div class="control-label"><span>서울시 평균</span></div>
+      <div class="control-label"><span>Seoul average</span></div>
       <div class="stat-grid">
         <div class="stat-card">
-          <div class="stat-label">범죄율</div>
+          <div class="stat-label">Crime rate</div>
           <div class="stat-value crime" id="totalCrime">—</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">검거율</div>
+          <div class="stat-label">Arrest rate</div>
           <div class="stat-value arrest" id="totalArrest">—</div>
         </div>
       </div>
@@ -747,14 +747,14 @@
   <main class="main">
     <div class="page-header">
       <div class="page-title">
-        <h1><span class="year-highlight" id="titleYear">2024</span>년 <span id="titleMetric">범죄율</span> 분포</h1>
-        <p>서울특별시 25개 자치구 · 자치구를 클릭하면 상세 정보가 표시됩니다</p>
+        <h1><span class="year-highlight" id="titleYear">2024</span> <span id="titleMetric">Crime rate</span> distribution</h1>
+        <p>25 districts of Seoul · Click a district to see details</p>
       </div>
       <div class="legend">
         <div class="legend-gradient">
-          <span>낮음</span>
+          <span>Low</span>
           <div class="gradient-bar crime" id="gradientBar"></div>
-          <span>높음</span>
+          <span>High</span>
         </div>
       </div>
     </div>
@@ -770,19 +770,19 @@
             <div class="modal-title-wrapper">
               <div class="modal-title">
                 <h2 id="modalGuName">—</h2>
-                <div class="modal-subtitle">자치구 안전 인프라</div>
+                <div class="modal-subtitle">District safety infrastructure</div>
               </div>
               <div class="modal-stats">
                 <div class="modal-stat">
-                  <div class="modal-stat-label">범죄율</div>
+                  <div class="modal-stat-label">Crime rate</div>
                   <div class="modal-stat-value crime" id="modalCrime">—</div>
                 </div>
                 <div class="modal-stat">
-                  <div class="modal-stat-label">검거율</div>
+                  <div class="modal-stat-label">Arrest rate</div>
                   <div class="modal-stat-value arrest" id="modalArrest">—</div>
                 </div>
                 <div class="modal-stat">
-                  <div class="modal-stat-label">총 CCTV</div>
+                  <div class="modal-stat-label">Total CCTV</div>
                   <div class="modal-stat-value" id="modalCctv">—</div>
                 </div>
               </div>
@@ -791,15 +791,15 @@
           </div>
           <div class="modal-body">
             <div class="modal-toolbar">
-              <div class="modal-section-title">동별 분포 & 보안시설</div>
+              <div class="modal-section-title">Neighborhood distribution & safety facilities</div>
               <div class="layer-toggles" id="layerToggles">
-                <button class="layer-toggle active" data-layer="cctv">
+                <button class="layer-toggle active" data-layer="cctv" title="Circle size = CCTV density per km², not raw count">
                   <span class="layer-toggle-dot cctv"></span>
-                  <span>CCTV</span>
+                  <span>CCTV density</span>
                 </button>
                 <button class="layer-toggle active" data-layer="police">
                   <span class="layer-toggle-dot police"></span>
-                  <span>경찰서</span>
+                  <span>Police</span>
                 </button>
               </div>
             </div>
@@ -808,15 +808,15 @@
               <div class="modal-chart-col">
                 <div class="detail-chart-header">
                   <div>
-                    <div class="detail-chart-title" id="detailChartTitle">연도별 추이</div>
-                    <div class="detail-chart-sub">위: 검거 / 아래: 발생</div>
+                    <div class="detail-chart-title" id="detailChartTitle">Yearly trend</div>
+                    <div class="detail-chart-sub">Top: arrests / Bottom: incidents</div>
                   </div>
                   <div class="detail-chart-legend">
-                    <span class="dcl-item"><span class="dcl-dot" style="background:#e63946"></span>살인</span>
-                    <span class="dcl-item"><span class="dcl-dot" style="background:#f97316"></span>강도</span>
-                    <span class="dcl-item"><span class="dcl-dot" style="background:#eab308"></span>절도</span>
-                    <span class="dcl-item"><span class="dcl-dot" style="background:#06a77d"></span>폭력</span>
-                    <span class="dcl-item"><span class="dcl-dot" style="background:#3b82f6"></span>강간/추행</span>
+                    <span class="dcl-item"><span class="dcl-dot" style="background:#e63946"></span>Murder</span>
+                    <span class="dcl-item"><span class="dcl-dot" style="background:#f97316"></span>Robbery</span>
+                    <span class="dcl-item"><span class="dcl-dot" style="background:#eab308"></span>Theft</span>
+                    <span class="dcl-item"><span class="dcl-dot" style="background:#06a77d"></span>Violence</span>
+                    <span class="dcl-item"><span class="dcl-dot" style="background:#3b82f6"></span>Sexual assault</span>
                   </div>
                 </div>
                 <svg id="detailChartSvg" width="100%" viewBox="0 0 420 490" preserveAspectRatio="xMidYMid meet"></svg>
@@ -831,8 +831,8 @@
     <div class="scatter-section">
       <div class="scatter-section-header">
         <div>
-          <div class="scatter-section-title">범죄율 vs 검거율 산점도</div>
-          <div class="scatter-section-sub">자치구별 범죄율(X축)과 검거율(Y축)의 관계 · 점 hover 시 지도 연동 · 클릭 시 상세보기</div>
+          <div class="scatter-section-title">Crime rate vs Arrest rate</div>
+          <div class="scatter-section-sub">District crime rate (X) vs arrest rate (Y) · hover to link with map · click for details</div>
         </div>
       </div>
       <div class="scatter-wrap">
@@ -850,9 +850,10 @@ const DONG_DATA = {"종로구":[{"name":"사직동","code":"11010530","d":"M2222
 
 
 // 1. 서울시 실제 공식 위경도 경계 (고정값)
+// Official Seoul lat/lng bounds (fixed). NOTE: key was previously misspelled "maxxLng".
 const seoulBounds = {
-  minLng: 126.764, maxxLng: 127.183, // 서쪽 끝 ~ 동쪽 끝 경도
-  minLat: 37.428, maxLat: 37.701  // 남쪽 끝 ~ 북쪽 끝 위도
+  minLng: 126.764, maxLng: 127.183, // west ~ east longitude
+  minLat: 37.428,  maxLat: 37.701   // south ~ north latitude
 };
 
 // 2. SVG Path 데이터를 분석하여 실제 화면(픽셀)상 지도의 경계 찾기
@@ -872,17 +873,16 @@ Object.values(SEOUL_DATA.districts).forEach(info => {
 
 // 3. 위경도와 SVG 픽셀을 1:1로 매칭하는 동적 스케일러 생성
 const scaleX = d3.scaleLinear()
-  .domain([seoulBounds.minLng, seoulBounds.maxxLng])
+  .domain([seoulBounds.minLng, seoulBounds.maxLng])
   .range([svgMinX, svgMaxX]);
-    
+  
 const scaleY = d3.scaleLinear()
   .domain([seoulBounds.minLat, seoulBounds.maxLat])
   .range([svgMaxY, svgMinY]); // 위도는 북쪽(+)이 Y축으로는 위쪽(-)이므로 역순 맵핑
 
 
-// CCTV 크기 스케일러
-const cctvRadiusScale = d3.scaleSqrt().domain([0, 800]).range([2, 25]).clamp(true);
-
+// Circle radius encodes CCTV density (cameras per km²), not raw count. Enlarged range for visibility.
+const cctvRadiusScale = d3.scaleSqrt().domain([0, 800]).range([4, 40]).clamp(true);
 const state = {
   year: '2024',
   metric: 'crime', // 'crime' 또는 'arrest'
@@ -1082,7 +1082,7 @@ function renderStats() {
   document.getElementById('totalArrest').textContent = count > 0 ? Math.round(totalArrest / count) : '—';
 
   document.getElementById('titleYear').textContent = state.year;
-  document.getElementById('titleMetric').textContent = state.metric === 'crime' ? '범죄율' : '검거율';
+  document.getElementById('titleMetric').textContent = state.metric === 'crime' ? 'Crime rate' : 'Arrest rate';
   document.getElementById('gradientBar').className = `gradient-bar ${state.metric}`;
 }
 
@@ -1165,8 +1165,10 @@ function renderModalMap(guName) {
       if (cctvInfo && cctvInfo.ratio > 0) {
         cctvRadiusScale.domain([0, state.cctvMaxRatio]);
         const r = cctvRadiusScale(cctvInfo.ratio) * scale;
-        svg += `<circle cx="${dong.cx}" cy="${dong.cy}" r="${r}" fill="#a78bfa" fill-opacity="0.45" stroke="#7c3aed" stroke-width="${1.2 * scale}"><title>${dong.name} - 비율: ${cctvInfo.ratio.toFixed(1)}</title></circle>`;
-        svg += `<text x="${dong.cx}" y="${dong.cy + r + 12 * scale}" text-anchor="middle" font-size="${10 * scale}px" font-weight="700" fill="#6d28d9" font-family="'JetBrains Mono', monospace">${Math.round(cctvInfo.ratio)}</text>`;
+        // Circle size = CCTV density (cameras per km²), NOT raw camera count.
+        // Hover shows both the density ratio and the actual number of cameras.
+        svg += `<circle cx="${dong.cx}" cy="${dong.cy}" r="${r}" fill="#a78bfa" fill-opacity="0.45" stroke="#7c3aed" stroke-width="${1.2 * scale}" style="cursor:help"><title>${dong.name}\nCCTV count: ${cctvInfo.count.toLocaleString()}\nDensity (per km²): ${cctvInfo.ratio.toFixed(1)}</title></circle>`;
+        svg += `<text x="${dong.cx}" y="${dong.cy + r + 12 * scale}" text-anchor="middle" font-size="${10 * scale}px" font-weight="700" fill="#6d28d9" font-family="'JetBrains Mono', monospace" style="pointer-events:none">${Math.round(cctvInfo.ratio)}</text>`;
       }
     }
   });
@@ -1206,10 +1208,13 @@ function renderModalMap(guName) {
         let px = scaleX(p.lng);
         let py = scaleY(p.lat);
         if (!inPoly(px, py)) { const c = clampInside(px, py); px = c[0]; py = c[1]; }
-        const r = 11 * scale;
-        svg += `<g transform="translate(${px}, ${py})">
-                  <circle cx="0" cy="0" r="${r}" fill="#eab308" stroke="white" stroke-width="${2 * scale}"><title>${p.name} (${p.type})</title></circle>
-                  <text x="0" y="${4 * scale}" text-anchor="middle" font-size="${10 * scale}px" font-weight="700" fill="white" font-family="'JetBrains Mono', monospace">P</text>
+        const s = scale;
+        // Police marker: a teardrop map-pin with a small building/shield glyph.
+        svg += `<g transform="translate(${px}, ${py})" style="cursor:help">
+                  <path d="M0,${2*s} C${-9*s},${-9*s} ${-9*s},${-22*s} 0,${-26*s} C${9*s},${-22*s} ${9*s},${-9*s} 0,${2*s} Z" fill="#eab308" stroke="white" stroke-width="${1.6*s}"/>
+                  <circle cx="0" cy="${-16*s}" r="${6.5*s}" fill="white"/>
+                  <text x="0" y="${-13*s}" text-anchor="middle" font-size="${9*s}px" font-weight="800" fill="#a16207" font-family="'JetBrains Mono', monospace">P</text>
+                  <title>${p.name} (${p.type})\n${p.address}</title>
                 </g>`;
       }
     });
@@ -1228,7 +1233,7 @@ function renderMainChart() {
   if (!svgEl) return;
   
   const titleEl = document.getElementById('chartTitle');
-  if (titleEl) titleEl.textContent = state.selectedGu ? `${state.selectedGu} 연도별 추이` : '서울시 평균 연도별 추이';
+  if (titleEl) titleEl.textContent = state.selectedGu ? `${state.selectedGu} — yearly trend` : 'Seoul average — yearly trend';
 
   drawBarChart(svgEl, 800, 320, state.selectedGu);
 }
