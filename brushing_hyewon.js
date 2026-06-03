@@ -8,7 +8,7 @@
  */
 
 (function() {
-  console.log("🚀 Bushing Plugin (Perfect Error-Free Mode) Loading...");
+  console.log("🚀 Bushing Plugin (Tooltip & Perfect Error-Free Mode) Loading...");
 
   const checkInterval = setInterval(() => {
     if (typeof state !== 'undefined' && state.crimeData && document.querySelector('.map-area')) {
@@ -65,8 +65,7 @@
     style.innerHTML = `
       #comp-container { margin-top: 24px; animation: fadeIn 0.4s ease; padding: 24px; display: block; }
       .comp-line { fill: none; stroke-width: 3.5px; stroke-linecap: round; stroke-linejoin: round; }
-      .comp-dot { stroke: var(--bg-card); stroke-width: 2px; transition: r 0.2s; cursor: pointer; }
-      .comp-dot:hover { r: 6; }
+      .comp-dot { stroke: var(--bg-card); stroke-width: 2px; cursor: pointer; }
       
       #seoulMap { user-select: none; -webkit-user-select: none; touch-action: none; }
       #seoulMap .gu-path { cursor: pointer; transition: fill 0.15s ease, filter 0.15s ease; }
@@ -81,6 +80,10 @@
       /* prevent fly-in animation */
       #svgBar .tick, #svgBar rect, #svgAll .tick, #svgAll rect { transition: none !important; }
       
+      /* 💡 마우스 호버 시 나타날 툴팁 디자인 추가 */
+      .d3-custom-tooltip { position: absolute; background: rgba(15, 23, 42, 0.85); color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(4px); }
+      .d3-tooltip-title { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+
       @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     `;
     document.head.appendChild(style);
@@ -99,12 +102,10 @@
         </div>
       </div>
       
-      <!-- 0 selected: full 25-district ranking bar chart -->
       <div id="all-districts-wrapper">
          <svg id="svgAll" width="100%" height="280" viewBox="0 0 800 280"></svg>
       </div>
       
-      <!-- 1+ selected: multi-comparison chart grid -->
       <div class="chart-grid" id="comp-grid" style="display: none;">
         <div>
           <div class="sub-chart-title">📈 Trends in Rates (Arrest Rate / Crime Rate)</div>
@@ -143,7 +144,6 @@
       }
     });
 
-    // 💡 마우스 움직일 때 (픽셀 단위로 마우스 아래 요소를 추적하여 삑사리 완벽 방지)
     mapSvg.addEventListener('pointermove', (e) => {
       if (!isPainting || isJiyunMode()) return;
       isDragged = true; 
@@ -167,14 +167,12 @@
     });
   }
 
-  // 💡 Index(순서)에 의존하지 않고, 태그에 적힌 진짜 이름을 직접 읽어오도록 개선
   function getGuNameFromPath(path) {
     const titleEl = path.querySelector('title');
     if (titleEl) {
       return titleEl.textContent.split(' · ')[0].trim();
     }
     
-    // Fallback (만약 title 태그가 없을 경우를 대비한 기존 로직 유지)
     const paths = Array.from(document.querySelectorAll('#seoulMap .gu-path'));
     const idx = paths.indexOf(path);
     if (idx > -1 && typeof SEOUL_DATA !== 'undefined') return Object.keys(SEOUL_DATA.districts)[idx];
@@ -182,7 +180,6 @@
     return null;
   }
 
-  // 💡 하이라이트 함수도 실제 이름을 기반으로 색칠하도록 개선
   function highlightMap() {
     if (typeof window.onBrushUpdate === 'function') window.onBrushUpdate(brushedGus.slice());
 
@@ -250,7 +247,6 @@
     const margin = { top: 30, right: 40, bottom: 50, left: 40 }; 
     const year = state.year;
     
-    // 💡 read the metric currently selected in the sidebar (with safe fallback)
     const activeMetric = (state.metric === 'arrest' || state.indicator === 'arrest') ? 'arrest' : 'crime';
 
     const compTitle = document.getElementById('comp-title');
@@ -285,7 +281,6 @@
 
     const t = svg.transition().duration(600).ease(d3.easeCubicOut);
 
-    // 💡 left Y axis (remove the domain path immediately for clean rendering)
     const yAxisLeft = d3.axisLeft(yScaleCrime).ticks(5).tickSize(-(width - margin.left - margin.right));
     const leftG = svg.select('.y-axis-left');
     leftG.transition(t).call(yAxisLeft);
@@ -301,14 +296,12 @@
          .text('Crime Rate(%)');
     }
 
-    // 💡 right Y axis (append directly to the original G to avoid errors)
     const yAxisRight = d3.axisRight(yScaleArrest).ticks(5).tickSize(0);
     const rightG = svg.select('.y-axis-right');
     rightG.transition(t).call(yAxisRight);
     rightG.select(".domain").remove();
     rightG.selectAll(".tick text").attr("fill", "#06a77d").attr("font-size", "10px").attr("font-weight", "600").attr("dx", "4px");
     
-    // fix the root cause: append to the rightG element itself, not the transition object
     if(rightG.select('.right-label').empty()){
         rightG.append('text').attr('class','right-label')
          .attr('x', 0).attr('y', margin.top - 10)
@@ -317,7 +310,6 @@
          .text('Arrest Rate(%)');
     }
 
-    // 💡 X axis (clean rendering)
     const xAxisG = svg.select('.x-axis');
     xAxisG.transition(t).call(d3.axisBottom(xScale0).tickSizeOuter(0));
     xAxisG.select(".domain").remove();
@@ -401,6 +393,12 @@
     const margin = { top: 20, right: 40, bottom: 30, left: 40 }; 
     const years = ['2021', '2022', '2023', '2024'];
 
+    // 💡 마우스 호버 툴팁 엘리먼트 생성 (Body 텍스트 최상단에 싱글톤으로 존재)
+    let tooltip = d3.select('.d3-custom-tooltip');
+    if (tooltip.empty()) {
+      tooltip = d3.select('body').append('div').attr('class', 'd3-custom-tooltip');
+    }
+
     const chartData = brushedGus.map((gu, i) => {
       const values = years.map(yr => {
         let ratio = 0;
@@ -440,9 +438,34 @@
 
     chartData.forEach(series => {
       svg.append('path').datum(series.values).attr('class', 'comp-line').attr('d', lineGen).attr('stroke', series.color);
-      svg.selectAll('.cd-' + series.index).data(series.values).enter().append('circle')
-        .attr('class', 'comp-dot').attr('cx', d => xScale(d.year)).attr('cy', d => yScale(d.value)).attr('r', 4.5).attr('fill', series.color)
-        .append('title').text(d => `Ratio: ${d.value.toFixed(4)}`);
+      
+      // 💡 툴팁 마우스 이벤트 추가
+      const dots = svg.selectAll('.cd-' + series.index).data(series.values).enter().append('circle')
+        .attr('class', 'comp-dot')
+        .attr('cx', d => xScale(d.year))
+        .attr('cy', d => yScale(d.value))
+        .attr('r', 4.5)
+        .attr('fill', series.color);
+        
+      dots.on('mouseover', function(event, d) {
+          const datum = d || event; // D3 버전에 따른 안전한 호환
+          const e = d ? event : d3.event;
+          
+          d3.select(this).transition().duration(200).attr('r', 7); // 점이 커지는 효과
+          tooltip.style('opacity', 1)
+                 .html(`<div class="d3-tooltip-title">${series.gu} (${datum.year})</div><div style="color: ${series.color};">Ratio: ${datum.value.toFixed(4)}</div>`)
+                 .style('left', (e.pageX + 15) + 'px')
+                 .style('top', (e.pageY - 28) + 'px');
+      })
+      .on('mousemove', function(event, d) {
+          const e = d ? event : d3.event;
+          tooltip.style('left', (e.pageX + 15) + 'px')
+                 .style('top', (e.pageY - 28) + 'px');
+      })
+      .on('mouseout', function() {
+          d3.select(this).transition().duration(200).attr('r', 4.5); // 원래 크기로 복구
+          tooltip.style('opacity', 0);
+      });
     });
 
     document.getElementById('legend-line').innerHTML = chartData.map(s => 
@@ -460,7 +483,7 @@
     const gu = brushedGus[0];
     const years = ['2021', '2022', '2023', '2024'];
 
-    document.getElementById('title-bar').innerHTML = `📊 Five Major Crime Composition in ${gu} (2021–2024 Total)`;
+    document.getElementById('title-bar').innerHTML = `📊 Five Major Crime Composition<br><span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">(${gu}, 2021–2024 Total)</span>`;
     document.getElementById('bar-hint').textContent = ''; 
 
     document.getElementById('legend-bar').innerHTML = CRIME_TYPES.map(k => 
@@ -496,7 +519,7 @@
       .attr('stroke', 'white')
       .style('stroke-width', '2px')
       .style('cursor', 'pointer')
-      .style('outline', 'none'); // prevent focus outline
+      .style('outline', 'none'); 
       
     slices.append('title')
       .text(d => `${CRIME_LABELS[d.data.key]}: ${d.data.value} cases (${(d.data.value / total * 100).toFixed(1)}%)`);
@@ -533,7 +556,7 @@
     const years = ['2021', '2022', '2023', '2024']; 
 
     const sortLabel = currentSortKey === 'total' ? 'Total' : CRIME_LABELS[currentSortKey];
-    document.getElementById('title-bar').innerHTML = `📊 Cumulative Incidents of Five Major Crimes<br>(2021–2024, sorted by ${sortLabel})`;
+    document.getElementById('title-bar').innerHTML = `📊 Cumulative Incidents of Five Major Crimes<br><span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">(2021–2024, sorted by ${sortLabel})</span>`;
     document.getElementById('bar-hint').textContent = '💡 Click the legend or chart segments below to sort districts by the selected crime type.';
 
     let barData = brushedGus.map(gu => {
@@ -578,14 +601,12 @@
 
     const t = svg.transition().duration(600).ease(d3.easeCubicOut);
 
-    // 💡 Y axis (fully remove the border)
     const yAxisG = svg.select('.y-axis');
     yAxisG.transition(t).call(d3.axisLeft(yScale).ticks(5).tickSize(-(width - margin.left - margin.right)));
     yAxisG.select(".domain").remove();
     yAxisG.selectAll(".tick line").attr("stroke", "var(--border)").attr("stroke-dasharray", "4,4");
     yAxisG.selectAll(".tick text").attr("fill", "var(--text-secondary)").attr("x", -8).attr("font-size", "10px");
 
-    // 💡 X axis (prevent label fly-in)
     const xAxisG = svg.select('.x-axis');
     xAxisG.transition(t).call(d3.axisBottom(xScale).tickSizeOuter(0));
     xAxisG.select(".domain").remove();
